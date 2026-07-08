@@ -13,7 +13,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "eval:triage": "tsx scripts/eval-triage.ts"
+    "eval:triage": "tsx --env-file-if-exists=.env.local scripts/eval-triage.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

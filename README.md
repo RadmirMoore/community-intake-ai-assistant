@@ -172,9 +172,12 @@ lint, tests, and a production build on every push and pull request.
 
 There's also an opt-in triage **accuracy eval** against the real Anthropic
 API — see [`docs/EVALS.md`](docs/EVALS.md). It costs API credits and isn't
-part of the default CI job:
+part of the default CI job. It reads `ANTHROPIC_API_KEY` from `.env.local`
+the same way `next dev` does:
 
 ```bash
+npm run eval:triage
+# or, without a .env.local file:
 ANTHROPIC_API_KEY=sk-ant-... npm run eval:triage
 ```
 

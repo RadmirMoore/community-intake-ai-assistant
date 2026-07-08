@@ -9,8 +9,12 @@ which is what `scripts/eval-triage.ts` does.
 ## Running it
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-... npm run eval:triage
+npm run eval:triage
 ```
+
+It reads `ANTHROPIC_API_KEY` from `.env.local` the same way `next dev` does
+(via Node's `--env-file-if-exists`), or you can pass it inline instead:
+`ANTHROPIC_API_KEY=sk-ant-... npm run eval:triage`.
 
 This calls the real Anthropic API once per case in
 `src/lib/__fixtures__/triage-eval-cases.ts`, so it costs API credits. It is
