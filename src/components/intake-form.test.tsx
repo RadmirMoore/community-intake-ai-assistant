@@ -14,6 +14,7 @@ function renderForm() {
 
 async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/your name/i), "Jordan Rivera");
+  await user.type(screen.getByLabelText(/^email$/i), "jordan@example.com");
   await user.type(
     screen.getByLabelText(/how can we help/i),
     "Looking for help finding a food pantry near me.",
@@ -43,6 +44,25 @@ describe("IntakeForm", () => {
     await user.click(screen.getByRole("button", { name: /submit request/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/consent/i);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("blocks submission and shows an inline error when neither email nor phone is given", async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByLabelText(/your name/i), "Jordan Rivera");
+    await user.type(
+      screen.getByLabelText(/how can we help/i),
+      "Looking for help finding a food pantry near me.",
+    );
+    await user.click(screen.getByLabelText(/i consent/i));
+    await user.click(screen.getByRole("button", { name: /submit request/i }));
+
+    const emailField = await screen.findByLabelText(/^email$/i);
+    expect(emailField).toHaveAttribute("aria-invalid", "true");
+    const phoneField = screen.getByLabelText(/^phone$/i);
+    expect(phoneField).toHaveAttribute("aria-invalid", "true");
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -76,6 +96,7 @@ describe("IntakeForm", () => {
     expect(screen.getByText("¿Cómo podemos ayudarte?")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/tu nombre/i), "Jordan Rivera");
+    await user.type(screen.getByLabelText(/correo electrónico/i), "jordan@example.com");
     await user.type(
       screen.getByLabelText(/cómo podemos ayudarte/i),
       "Busco ayuda para encontrar un banco de alimentos.",

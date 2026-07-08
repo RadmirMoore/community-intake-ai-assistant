@@ -45,9 +45,12 @@ export async function POST(request: Request) {
   }
 
   const preset = PREVIEW_PRESETS[presetId];
+  // Synthetic contact value only — the real form now requires at least one
+  // of email/phone, and this demo submission should reflect what it can
+  // actually produce. Contact fields don't affect triage classification.
   const input: IntakeInput = {
     fullName: "Demo Visitor",
-    email: "",
+    email: "demo@example.org",
     phone: "",
     preferredContact: "either",
     zipCode: "",

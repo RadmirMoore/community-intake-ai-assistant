@@ -57,9 +57,10 @@ AI-reviewed.
 
 ## 5. Minimal data collection, explicit consent
 
-The public intake form makes every contact field optional — someone in
-crisis can ask for help without handing over an email, phone number, or ZIP
-code (`src/lib/types.ts:36-50`). Submission requires an explicit consent
+The public intake form keeps ZIP code fully optional, and only requires one
+of email *or* phone rather than both (`src/lib/types.ts`) — enough for staff
+to have a way to reach back without forcing someone in crisis to hand over
+every channel they have. Submission requires an explicit consent
 checkbox (`consent: z.literal(true, ...)`) before anything is stored. The
 staff-facing summary is written in English regardless of the requester's
 language, but the *draft* follow-up message is written back to the requester
@@ -105,14 +106,16 @@ team without pretending to be real per-user authentication, which
 `DASHBOARD_PASSWORD` (a single shared password) doesn't provide either. See
 `ROADMAP.md` for what real per-user accounts (Supabase Auth) would take.
 
-## 8. Closing the loop when there's no contact info
+## 8. Closing the loop: there's no automatic delivery yet
 
-If a requester leaves no email or phone, there was previously no way for a
-staff reply to ever reach them — `suggestedFollowUp` only ever appeared in
-the dashboard behind a "Copy" button (nothing in this app sends email or SMS).
-Every submission's own id now doubles as an unguessable tracking link
-(`/status/[id]`, `src/app/api/status/[id]/route.ts`): the requester sees it
-once, on the success screen, and can check back later. This does **not**
+Even when a requester provides an email or phone, this app has no email/SMS
+sending capability — `suggestedFollowUp` only ever appeared in the dashboard
+behind a "Copy" button, and staff would have to reach out manually using
+whatever contact info was given. Every submission's own id now doubles as an
+unguessable tracking link (`/status/[id]`, `src/app/api/status/[id]/route.ts`)
+— the one delivery path built into the app itself, regardless of what
+contact info was provided: the requester sees it once, on the success
+screen, and can check back later. This does **not**
 weaken human-in-the-loop — staff must explicitly review (and may edit) the
 AI's draft and click "Publish reply" (`src/components/submission-detail.tsx`,
 `src/app/api/submissions/[id]/reply/route.ts`) before anything becomes

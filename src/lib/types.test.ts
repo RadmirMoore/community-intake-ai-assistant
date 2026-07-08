@@ -17,13 +17,23 @@ describe("intakeInputSchema", () => {
     expect(parsed.success).toBe(true);
   });
 
-  it("accepts a submission without any contact details", () => {
+  it("rejects a submission with no email and no phone", () => {
     const parsed = intakeInputSchema.safeParse({
       ...validInput,
       email: "",
       phone: "",
       zipCode: "",
     });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("accepts a submission with only an email", () => {
+    const parsed = intakeInputSchema.safeParse({ ...validInput, email: "jane@example.com", phone: "" });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("accepts a submission with only a phone number", () => {
+    const parsed = intakeInputSchema.safeParse({ ...validInput, email: "", phone: "555-0100" });
     expect(parsed.success).toBe(true);
   });
 
