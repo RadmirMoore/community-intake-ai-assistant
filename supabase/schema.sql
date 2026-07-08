@@ -11,7 +11,10 @@ create table if not exists public.submissions (
                 check (status in ('new', 'in_review', 'in_progress', 'resolved', 'closed')),
   input       jsonb not null,   -- the intake form data submitted by the person
   triage      jsonb not null,   -- the AI (or rule-based) triage result
-  staff_notes text not null default ''
+  staff_notes text not null default '',
+  -- Self-reported staff display name, not verified identity — see
+  -- docs/RESPONSIBLE_AI.md. Real per-user auth is tracked in ROADMAP.md.
+  reviewed_by text
 );
 
 create index if not exists submissions_created_at_idx

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { isDashboardProtected, staffSessionToken, verifyStaffPassword } from "@/lib/auth";
+import {
+  isDashboardProtected,
+  readStaffNameHeader,
+  staffSessionToken,
+  STAFF_NAME_HEADER,
+  verifyStaffPassword,
+} from "@/lib/auth";
 
 describe("staff auth", () => {
   beforeEach(() => {
@@ -34,5 +40,30 @@ describe("staff auth", () => {
     vi.stubEnv("DASHBOARD_PASSWORD", "rotated");
     const after = staffSessionToken();
     expect(before).not.toBe(after);
+  });
+});
+
+describe("readStaffNameHeader", () => {
+  function requestWith(value: string | undefined) {
+    const headers = new Headers();
+    if (value !== undefined) headers.set(STAFF_NAME_HEADER, value);
+    return new Request("http://localhost/api/submissions/1", { headers });
+  }
+
+  it("returns undefined when the header is absent", () => {
+    expect(readStaffNameHeader(requestWith(undefined))).toBeUndefined();
+  });
+
+  it("trims and decodes the header value", () => {
+    expect(readStaffNameHeader(requestWith(encodeURIComponent("  José  ")))).toBe("José");
+  });
+
+  it("treats a blank header as absent", () => {
+    expect(readStaffNameHeader(requestWith("   "))).toBeUndefined();
+  });
+
+  it("caps the length so a very long header can't bloat storage", () => {
+    const long = "x".repeat(200);
+    expect(readStaffNameHeader(requestWith(long))?.length).toBe(80);
   });
 });

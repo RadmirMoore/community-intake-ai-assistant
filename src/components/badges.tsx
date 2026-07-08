@@ -22,7 +22,7 @@ export function StatusBadge({ status }: { status: Status }) {
 export function UrgencyBadge({ urgency }: { urgency: Urgency }) {
   return (
     <span className={`${base} ${URGENCY_STYLES[urgency]}`}>
-      {urgency === "critical" ? "● " : ""}
+      {urgency === "critical" && <span aria-hidden="true">●</span>}
       {URGENCY_LABELS[urgency]}
     </span>
   );

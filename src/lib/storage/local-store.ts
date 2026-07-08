@@ -72,10 +72,19 @@ export class LocalSubmissionStore implements SubmissionStore {
       ...existing,
       status: args.status ?? existing.status,
       staffNotes: args.staffNotes ?? existing.staffNotes,
+      reviewedBy: args.actor ?? existing.reviewedBy,
       updatedAt: new Date().toISOString(),
     };
     submissions[index] = updated;
     await this.writeAll(submissions);
     return updated;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const submissions = await this.readAll();
+    const next = submissions.filter((s) => s.id !== id);
+    if (next.length === submissions.length) return false;
+    await this.writeAll(next);
+    return true;
   }
 }

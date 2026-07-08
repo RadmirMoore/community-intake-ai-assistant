@@ -6,29 +6,29 @@ describe("checkRateLimit", () => {
     resetRateLimiter();
   });
 
-  it("allows requests under the limit", () => {
+  it("allows requests under the limit", async () => {
     for (let i = 0; i < 5; i++) {
-      expect(checkRateLimit("ip-1", 5).allowed).toBe(true);
+      expect((await checkRateLimit("ip-1", 5)).allowed).toBe(true);
     }
   });
 
-  it("blocks the request over the limit and reports retry time", () => {
-    for (let i = 0; i < 3; i++) checkRateLimit("ip-2", 3);
-    const result = checkRateLimit("ip-2", 3);
+  it("blocks the request over the limit and reports retry time", async () => {
+    for (let i = 0; i < 3; i++) await checkRateLimit("ip-2", 3);
+    const result = await checkRateLimit("ip-2", 3);
     expect(result.allowed).toBe(false);
     expect(result.retryAfterSeconds).toBeGreaterThan(0);
   });
 
-  it("tracks clients independently", () => {
-    for (let i = 0; i < 3; i++) checkRateLimit("ip-3", 3);
-    expect(checkRateLimit("ip-3", 3).allowed).toBe(false);
-    expect(checkRateLimit("ip-4", 3).allowed).toBe(true);
+  it("tracks clients independently", async () => {
+    for (let i = 0; i < 3; i++) await checkRateLimit("ip-3", 3);
+    expect((await checkRateLimit("ip-3", 3)).allowed).toBe(false);
+    expect((await checkRateLimit("ip-4", 3)).allowed).toBe(true);
   });
 
-  it("frees the window once old hits expire", () => {
-    expect(checkRateLimit("ip-5", 1, 0).allowed).toBe(true);
+  it("frees the window once old hits expire", async () => {
+    expect((await checkRateLimit("ip-5", 1, 0)).allowed).toBe(true);
     // windowMs of 0 means the previous hit is already outside the window
-    expect(checkRateLimit("ip-5", 1, 0).allowed).toBe(true);
+    expect((await checkRateLimit("ip-5", 1, 0)).allowed).toBe(true);
   });
 });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isStaffAuthenticated } from "@/lib/auth";
+import { isStaffAuthenticated, readStaffNameHeader } from "@/lib/auth";
 import { getStore } from "@/lib/storage";
 import { statusUpdateSchema } from "@/lib/types";
 
@@ -43,7 +43,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   try {
-    const updated = await getStore().update(id, parsed.data);
+    const updated = await getStore().update(id, {
+      ...parsed.data,
+      actor: readStaffNameHeader(request),
+    });
     if (!updated) {
       return NextResponse.json({ error: "Not found." }, { status: 404 });
     }
@@ -51,5 +54,23 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   } catch (error) {
     console.error("Failed to update submission:", error);
     return NextResponse.json({ error: "Failed to update submission." }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, { params }: RouteContext) {
+  if (!(await isStaffAuthenticated())) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+  const { id } = await params;
+
+  try {
+    const deleted = await getStore().delete(id);
+    if (!deleted) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Failed to delete submission:", error);
+    return NextResponse.json({ error: "Failed to delete submission." }, { status: 500 });
   }
 }

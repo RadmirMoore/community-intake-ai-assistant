@@ -15,6 +15,7 @@ interface SubmissionRow {
   input: IntakeInput;
   triage: Triage;
   staff_notes: string;
+  reviewed_by: string | null;
 }
 
 function rowToSubmission(row: SubmissionRow): Submission {
@@ -26,6 +27,7 @@ function rowToSubmission(row: SubmissionRow): Submission {
     input: row.input,
     triage: row.triage,
     staffNotes: row.staff_notes ?? "",
+    reviewedBy: row.reviewed_by ?? undefined,
   };
 }
 
@@ -77,6 +79,7 @@ export class SupabaseSubmissionStore implements SubmissionStore {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (args.status !== undefined) patch.status = args.status;
     if (args.staffNotes !== undefined) patch.staff_notes = args.staffNotes;
+    if (args.actor !== undefined) patch.reviewed_by = args.actor;
 
     const { data, error } = await this.client
       .from(this.table)
@@ -86,5 +89,15 @@ export class SupabaseSubmissionStore implements SubmissionStore {
       .maybeSingle();
     if (error) throw new Error(`Supabase update failed: ${error.message}`);
     return data ? rowToSubmission(data as SubmissionRow) : null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const { data, error } = await this.client
+      .from(this.table)
+      .delete()
+      .eq("id", id)
+      .select("id");
+    if (error) throw new Error(`Supabase delete failed: ${error.message}`);
+    return (data?.length ?? 0) > 0;
   }
 }
