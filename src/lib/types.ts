@@ -90,6 +90,14 @@ export interface Submission {
    * docs/RESPONSIBLE_AI.md.
    */
   reviewedBy?: string;
+  /**
+   * A staff-reviewed reply visible to the requester via /status/[id] — the
+   * submission's own id doubles as an unguessable tracking link, since there
+   * is no other way for the AI's draft to ever reach someone who left no
+   * contact info. `null` (not just absent) means "explicitly unpublished" —
+   * see docs/RESPONSIBLE_AI.md for why this exists and its tradeoffs.
+   */
+  publishedReply?: { message: string; publishedAt: string; publishedBy?: string } | null;
 }
 
 export const statusUpdateSchema = z.object({
@@ -97,6 +105,12 @@ export const statusUpdateSchema = z.object({
   staffNotes: z.string().max(4000).optional(),
 });
 export type StatusUpdate = z.infer<typeof statusUpdateSchema>;
+
+/** Staff publishing (or revising) a reply visible to the requester. */
+export const publishReplySchema = z.object({
+  message: z.string().trim().min(1, "Reply can't be empty.").max(4000),
+});
+export type PublishReplyInput = z.infer<typeof publishReplySchema>;
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   housing: "Housing",

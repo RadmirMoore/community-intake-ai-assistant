@@ -48,6 +48,23 @@ export interface Dictionary {
   zodEmailInvalid: string;
   zodMessageTooShort: string;
   zodConsentRequired: string;
+  statusSaveIdTitle: string;
+  statusSaveIdBody: string;
+  statusCopyCode: string;
+  statusCodeCopied: string;
+  statusCheckLinkCta: string;
+  statusPrivacyNote: string;
+  statusPageTitle: string;
+  statusPageIntro: string;
+  statusCodeInputLabel: string;
+  statusCodeInputPlaceholder: string;
+  statusCheckButton: string;
+  statusNotFoundTitle: string;
+  statusNotFoundBody: string;
+  statusStillReviewingTitle: string;
+  statusStillReviewingBody: string;
+  statusReplyTitle: string;
+  statusReplySentLabel: string;
 }
 
 export const DICTIONARIES: Record<Locale, Dictionary> = {
@@ -90,6 +107,26 @@ export const DICTIONARIES: Record<Locale, Dictionary> = {
     zodEmailInvalid: "Enter a valid email.",
     zodMessageTooShort: "Tell us a little more so we can route your request.",
     zodConsentRequired: "We need your consent to have a staff member review this request.",
+    statusSaveIdTitle: "Save your request code",
+    statusSaveIdBody:
+      "We didn't get an email or phone number from you, so this is the only way to check back for a reply. Bookmark the link or copy the code below.",
+    statusCopyCode: "Copy code",
+    statusCodeCopied: "Copied",
+    statusCheckLinkCta: "Check status",
+    statusPrivacyNote:
+      "Keep this private — anyone with this code can see your request status. It works for 90 days.",
+    statusPageTitle: "Check your request",
+    statusPageIntro: "Enter the code you received when you submitted your request.",
+    statusCodeInputLabel: "Request code",
+    statusCodeInputPlaceholder: "Paste your code here",
+    statusCheckButton: "Check status",
+    statusNotFoundTitle: "We couldn't find that request",
+    statusNotFoundBody: "Double-check the code and try again.",
+    statusStillReviewingTitle: "Still being reviewed",
+    statusStillReviewingBody:
+      "A member of our team hasn't published a reply yet. Check back later.",
+    statusReplyTitle: "Reply from our team",
+    statusReplySentLabel: "Sent",
   },
   es: {
     languageLabel: "Idioma",
@@ -130,5 +167,25 @@ export const DICTIONARIES: Record<Locale, Dictionary> = {
     zodEmailInvalid: "Ingresa un correo electrónico válido.",
     zodMessageTooShort: "Cuéntanos un poco más para poder atender tu solicitud.",
     zodConsentRequired: "Necesitamos tu consentimiento para que el personal revise esta solicitud.",
+    statusSaveIdTitle: "Guarda el código de tu solicitud",
+    statusSaveIdBody:
+      "No recibimos un correo ni un teléfono tuyo, así que esta es la única forma de ver si hay una respuesta. Guarda el enlace o copia el código.",
+    statusCopyCode: "Copiar código",
+    statusCodeCopied: "Copiado",
+    statusCheckLinkCta: "Ver estado",
+    statusPrivacyNote:
+      "Guarda esto en privado — cualquiera con este código puede ver el estado de tu solicitud. Funciona durante 90 días.",
+    statusPageTitle: "Consulta tu solicitud",
+    statusPageIntro: "Ingresa el código que recibiste al enviar tu solicitud.",
+    statusCodeInputLabel: "Código de solicitud",
+    statusCodeInputPlaceholder: "Pega tu código aquí",
+    statusCheckButton: "Ver estado",
+    statusNotFoundTitle: "No pudimos encontrar esa solicitud",
+    statusNotFoundBody: "Revisa el código e inténtalo de nuevo.",
+    statusStillReviewingTitle: "Todavía en revisión",
+    statusStillReviewingBody:
+      "Un miembro de nuestro equipo aún no ha publicado una respuesta. Vuelve a consultar más tarde.",
+    statusReplyTitle: "Respuesta de nuestro equipo",
+    statusReplySentLabel: "Enviado",
   },
 };

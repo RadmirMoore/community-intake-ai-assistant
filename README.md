@@ -20,8 +20,9 @@ measured, not just assumed.
 1. **Receives requests** through a simple, low-pressure public intake form. Contact details are optional and consent is required.
 2. **Triages with AI**: Claude classifies each request (housing, food, healthcare, legal, emergency, general), assigns an urgency, writes a short summary for staff, drafts a follow-up message in the requester's own language, lists recommended next steps, and raises safety flags.
 3. **Keeps humans in control**: every AI output is a *draft* on a staff dashboard. Staff review, edit, change status, and add internal notes.
-4. **Stores submissions** in Supabase (Postgres) — or a local JSON file when no database is configured.
-5. **Surfaces a dashboard** with counts, filters (status / category / search), and a "needs attention" view for likely emergencies.
+4. **Closes the loop** even with no contact info: every submission gets an unguessable tracking link (`/status/[id]`); staff review and explicitly publish a reply before it's ever visible there.
+5. **Stores submissions** in Supabase (Postgres) — or a local JSON file when no database is configured.
+6. **Surfaces a dashboard** with counts, filters (status / category / search), and a "needs attention" view for likely emergencies.
 
 ## Privacy & safety by design
 
@@ -35,6 +36,7 @@ This is the most important part of the project.
 - **Deletable.** Staff can permanently delete a submission from the dashboard once it's no longer needed — there is no automated retention schedule yet (see `ROADMAP.md`), but deletion doesn't require touching the database or JSON file by hand.
 - **Staff-only dashboard.** With `DASHBOARD_PASSWORD` set, the dashboard and its APIs require a staff sign-in (httpOnly session cookie). Without it the app runs in open demo mode and says so on screen.
 - **Who reviewed what.** Staff enter a display name once (stored in their browser); it's attached to a submission whenever they change its status or notes. This is self-reported, not verified identity — see [`docs/RESPONSIBLE_AI.md`](docs/RESPONSIBLE_AI.md) for why, and what real per-user accounts would take.
+- **A reply can always reach the requester.** Even with no email or phone, a submission's own id is an unguessable tracking link (`/status/[id]`). Staff must explicitly publish a reply before anything appears there — nothing crosses from AI to requester automatically, and the public endpoint only ever returns status + a published reply, never the original message or contact info.
 - **Rate limiting.** The public intake endpoint is rate-limited per IP so bots can't flood the queue or burn the API budget. In-memory by default; set `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` for a shared backend on serverless/multi-instance deployments.
 - **Server-only secrets.** The Anthropic key and Supabase service-role key are only ever used on the server, never shipped to the browser.
 
@@ -92,6 +94,37 @@ anywhere real** — intake data is sensitive.
 The app automatically switches from the local JSON store to Supabase when both
 variables are present (shown in the dashboard footer).
 
+**Testing against a real Postgres locally, without a cloud project:** this repo
+includes a [Supabase CLI](https://supabase.com/docs/guides/local-development)
+config (`supabase/config.toml`, ports shifted to 55321-55329 to avoid clashing
+with other local Supabase projects). `supabase start` spins up a full local
+Postgres + PostgREST stack in Docker; apply the schema with
+`psql -h 127.0.0.1 -p 55322 -U postgres -d postgres -f supabase/schema.sql`,
+then point `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` in `.env.local` at the
+`API URL` / `service_role key` printed by `supabase status`. This is how
+`SupabaseSubmissionStore` gets verified against real Postgres — including
+things a mock can't catch, like `.eq("id", id)` throwing (not returning null)
+on a malformed UUID, which `src/app/api/status/[id]/route.ts` depends on
+handling correctly.
+
+**Testing the Redis-backed rate limiter locally, without an Upstash account:**
+run a real Redis plus an Upstash-REST-compatible proxy in front of it —
+[`hiett/serverless-redis-http`](https://github.com/hiett/serverless-redis-http)
+speaks the same REST protocol `@upstash/redis` expects:
+
+```bash
+docker network create ciassistant-redis-test
+docker run -d --name ciassistant-redis --network ciassistant-redis-test redis:7-alpine
+docker run -d --name ciassistant-srh --network ciassistant-redis-test -p 18080:80 \
+  -e SRH_MODE=env -e SRH_TOKEN=test-local-token \
+  -e SRH_CONNECTION_STRING="redis://ciassistant-redis:6379" \
+  hiett/serverless-redis-http:latest
+```
+
+Then set `UPSTASH_REDIS_REST_URL=http://localhost:18080` and
+`UPSTASH_REDIS_REST_TOKEN=test-local-token` in `.env.local`. Inspect real state
+with `docker exec ciassistant-redis redis-cli KEYS "rate-limit:*"`.
+
 ## Deploying
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FRadmirMoore%2Fcommunity-intake-ai-assistant&env=ANTHROPIC_API_KEY,DASHBOARD_PASSWORD,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,UPSTASH_REDIS_REST_URL,UPSTASH_REDIS_REST_TOKEN&envDescription=See%20.env.example%20for%20what%20each%20variable%20does%20%E2%80%94%20all%20are%20optional%20except%20DASHBOARD_PASSWORD%20for%20a%20real%20deployment&envLink=https%3A%2F%2Fgithub.com%2FRadmirMoore%2Fcommunity-intake-ai-assistant%2Fblob%2Fmain%2F.env.example&project-name=community-intake-assistant&repository-name=community-intake-assistant)
@@ -132,18 +165,24 @@ src/
     page.tsx              # landing / overview
     intake/page.tsx       # public intake form
     dashboard/page.tsx    # staff dashboard (behind the staff sign-in)
+    status/page.tsx           # public: paste a tracking code
+    status/[id]/page.tsx      # public: view status + any published reply
     api/
       intake/route.ts             # POST: rate limit -> validate -> triage -> store
+      preview-triage/route.ts     # POST: live triage demo on the landing page (preset-only)
       submissions/route.ts        # GET:  list submissions (staff only)
       submissions/[id]/route.ts   # GET/PATCH/DELETE: read + update + delete (staff only)
+      submissions/[id]/reply/route.ts # POST/DELETE: publish/unpublish a reply (staff only)
+      status/[id]/route.ts        # GET: public status + published reply lookup (rate limited)
       staff/login/route.ts        # POST/DELETE: staff session cookie
-  components/             # UI (form, dashboard, detail panel, login, badges)
+  components/             # UI (form, dashboard, detail panel, login, badges, status lookup)
   lib/
     types.ts             # domain types + Zod schemas
     triage.ts            # Anthropic triage + rule-based fallback
     auth.ts              # staff password + session cookie helpers
     rate-limit.ts        # in-memory rate limiter (pluggable Redis backend)
     storage/             # SubmissionStore interface + Supabase & local adapters
+    i18n/                # locale dictionary + context (intake form, status pages)
     __fixtures__/        # golden-dataset cases for the triage eval harness
 scripts/eval-triage.ts    # opt-in accuracy eval against the real Anthropic API
 supabase/schema.sql      # Postgres schema (RLS enabled)

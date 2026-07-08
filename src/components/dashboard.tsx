@@ -100,6 +100,52 @@ export function Dashboard({ initialSubmissions, initialBackend, isProtected }: D
     [router, staffName],
   );
 
+  const publishReply = useCallback(
+    async (id: string, message: string) => {
+      const res = await fetch(`/api/submissions/${id}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(staffName ? { [STAFF_NAME_HEADER]: encodeURIComponent(staffName) } : {}),
+        },
+        body: JSON.stringify({ message }),
+      });
+      if (res.status === 401) {
+        router.refresh();
+        return;
+      }
+      if (!res.ok) {
+        setError("Failed to publish the reply.");
+        return;
+      }
+      const data = (await res.json()) as { submission: Submission };
+      setSubmissions((prev) => prev.map((s) => (s.id === id ? data.submission : s)));
+    },
+    [router, staffName],
+  );
+
+  const unpublishReply = useCallback(
+    async (id: string) => {
+      const res = await fetch(`/api/submissions/${id}/reply`, {
+        method: "DELETE",
+        headers: {
+          ...(staffName ? { [STAFF_NAME_HEADER]: encodeURIComponent(staffName) } : {}),
+        },
+      });
+      if (res.status === 401) {
+        router.refresh();
+        return;
+      }
+      if (!res.ok) {
+        setError("Failed to unpublish the reply.");
+        return;
+      }
+      const data = (await res.json()) as { submission: Submission };
+      setSubmissions((prev) => prev.map((s) => (s.id === id ? data.submission : s)));
+    },
+    [router, staffName],
+  );
+
   const deleteSubmission = useCallback(
     async (id: string) => {
       const res = await fetch(`/api/submissions/${id}`, { method: "DELETE" });
@@ -301,6 +347,8 @@ export function Dashboard({ initialSubmissions, initialBackend, isProtected }: D
               submission={selected}
               onUpdate={updateSubmission}
               onDelete={deleteSubmission}
+              onPublishReply={publishReply}
+              onUnpublishReply={unpublishReply}
             />
           ) : (
             <div className="rounded-xl border border-dashed border-line bg-white p-10 text-center text-sm text-ink-faint">

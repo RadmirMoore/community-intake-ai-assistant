@@ -73,6 +73,10 @@ export class LocalSubmissionStore implements SubmissionStore {
       status: args.status ?? existing.status,
       staffNotes: args.staffNotes ?? existing.staffNotes,
       reviewedBy: args.actor ?? existing.reviewedBy,
+      // `??` can't express "clear to null" (null ?? existing resolves back to
+      // existing) — publishing/unpublishing needs real tri-state, so check
+      // presence explicitly instead of falling back on nullishness.
+      publishedReply: "publishedReply" in args ? args.publishedReply : existing.publishedReply,
       updatedAt: new Date().toISOString(),
     };
     submissions[index] = updated;

@@ -30,6 +30,17 @@ describe("checkRateLimit", () => {
     // windowMs of 0 means the previous hit is already outside the window
     expect((await checkRateLimit("ip-5", 1, 0)).allowed).toBe(true);
   });
+
+  it("keeps different routes from the same IP in separate buckets when the caller scopes the key", async () => {
+    // clientId is an opaque bucket key shared verbatim across every caller —
+    // callers must prefix it per-route (e.g. `intake:${ip}`) or two routes
+    // hitting the same IP would silently share one counter and steal each
+    // other's budget. This guards that contract, not just IP independence.
+    const ip = "203.0.113.9";
+    for (let i = 0; i < 3; i++) await checkRateLimit(`intake:${ip}`, 3);
+    expect((await checkRateLimit(`intake:${ip}`, 3)).allowed).toBe(false);
+    expect((await checkRateLimit(`status:${ip}`, 3)).allowed).toBe(true);
+  });
 });
 
 describe("clientIpFrom", () => {

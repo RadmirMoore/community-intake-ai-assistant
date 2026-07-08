@@ -9,9 +9,17 @@ interface Props {
   submission: Submission;
   onUpdate: (id: string, patch: { status?: Status; staffNotes?: string }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onPublishReply: (id: string, message: string) => Promise<void>;
+  onUnpublishReply: (id: string) => Promise<void>;
 }
 
-export function SubmissionDetail({ submission, onUpdate, onDelete }: Props) {
+export function SubmissionDetail({
+  submission,
+  onUpdate,
+  onDelete,
+  onPublishReply,
+  onUnpublishReply,
+}: Props) {
   // This component is remounted via a `key` on the submission id (see Dashboard),
   // so initializing from props here always reflects the selected submission.
   const [notes, setNotes] = useState(submission.staffNotes);
@@ -20,6 +28,12 @@ export function SubmissionDetail({ submission, onUpdate, onDelete }: Props) {
   const [copied, setCopied] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [replyDraft, setReplyDraft] = useState(
+    submission.publishedReply?.message ?? submission.triage.suggestedFollowUp,
+  );
+  const [publishing, setPublishing] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
+  const [justPublished, setJustPublished] = useState(false);
 
   const { input, triage } = submission;
 
@@ -28,6 +42,20 @@ export function SubmissionDetail({ submission, onUpdate, onDelete }: Props) {
     await onUpdate(submission.id, { staffNotes: notes });
     setSavingNotes(false);
     setNotesSaved(true);
+  }
+
+  async function publishReply() {
+    setPublishing(true);
+    await onPublishReply(submission.id, replyDraft);
+    setPublishing(false);
+    setJustPublished(true);
+  }
+
+  async function unpublishReply() {
+    setUnpublishing(true);
+    await onUnpublishReply(submission.id);
+    setUnpublishing(false);
+    setJustPublished(false);
   }
 
   async function confirmDelete() {
@@ -153,6 +181,61 @@ export function SubmissionDetail({ submission, onUpdate, onDelete }: Props) {
           <p className="mt-1 text-xs text-ink-faint">
             Edit this draft before sending. Do not promise outcomes or eligibility.
           </p>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+          Reply to requester
+        </h3>
+        <p className="mt-1 text-xs text-ink-faint">
+          {submission.publishedReply ? (
+            <>
+              Published {formatDateTime(submission.publishedReply.publishedAt)} — visible to the
+              requester at their status link. Nothing reaches them until you publish.
+            </>
+          ) : (
+            "Not published yet — the requester can't see this until you publish it."
+          )}
+        </p>
+        <textarea
+          value={replyDraft}
+          onChange={(e) => {
+            setReplyDraft(e.target.value);
+            setJustPublished(false);
+          }}
+          rows={4}
+          className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+          placeholder="Draft a reply the requester will see. Start from the AI's suggestion above and edit as needed."
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void publishReply()}
+            disabled={publishing || !replyDraft.trim()}
+            className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-paper transition hover:bg-brand-dark disabled:opacity-60"
+          >
+            {publishing
+              ? "Publishing…"
+              : submission.publishedReply
+                ? "Update published reply"
+                : "Publish reply"}
+          </button>
+          {submission.publishedReply && (
+            <button
+              type="button"
+              onClick={() => void unpublishReply()}
+              disabled={unpublishing}
+              className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+            >
+              {unpublishing ? "Unpublishing…" : "Unpublish"}
+            </button>
+          )}
+          {justPublished && (
+            <span role="status" aria-live="polite" className="text-xs text-brand-dark">
+              Published
+            </span>
+          )}
         </div>
       </section>
 

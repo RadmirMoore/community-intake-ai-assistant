@@ -105,6 +105,32 @@ describe("IntakeForm", () => {
     expect(fetch).toHaveBeenCalledWith("/api/intake", expect.objectContaining({ method: "POST" }));
   });
 
+  it("shows a copyable tracking code and status link after submitting", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ submission: { id: "submission-123" } }),
+    } as Response);
+    const user = userEvent.setup();
+    // userEvent.setup() installs its own clipboard stub on navigator.clipboard,
+    // overwriting anything set up beforehand — spy on it only after this call.
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    renderForm();
+
+    await fillRequiredFields(user);
+    await user.click(screen.getByLabelText(/i consent/i));
+    await user.click(screen.getByRole("button", { name: /submit request/i }));
+
+    expect(await screen.findByText("submission-123")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /check status/i })).toHaveAttribute(
+      "href",
+      "/status/submission-123",
+    );
+
+    await user.click(screen.getByRole("button", { name: /copy code/i }));
+    expect(writeText).toHaveBeenCalledWith("submission-123");
+    expect(await screen.findByRole("button", { name: /^copied$/i })).toBeInTheDocument();
+  });
+
   it("shows the server's error message when the request fails", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: false,

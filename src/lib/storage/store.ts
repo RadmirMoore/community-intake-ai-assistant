@@ -10,6 +10,11 @@ export interface UpdateSubmissionArgs {
   staffNotes?: string;
   /** Self-reported staff display name credited with this change, if any. */
   actor?: string;
+  /**
+   * `undefined` = don't touch; `null` = explicitly unpublish; object = publish/replace.
+   * Both adapters must distinguish "absent" from "null" here, not merge with `??`.
+   */
+  publishedReply?: Submission["publishedReply"];
 }
 
 /**

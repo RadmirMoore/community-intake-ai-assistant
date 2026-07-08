@@ -84,7 +84,13 @@ message says.
   demo mode (`dashboard.tsx:146-152`) — never silently.
 - The public intake endpoint is rate-limited per client IP
   (`src/lib/rate-limit.ts`, pluggable to a shared Upstash Redis backend) so it
-  can't be used to flood the queue or burn the Anthropic API budget.
+  can't be used to flood the queue or burn the Anthropic API budget. Every
+  public route scopes its rate-limit key by route name, not just IP
+  (`` `intake:${ip}` ``, `` `status:${ip}` ``, ...) — they'd otherwise share one
+  counter and silently steal each other's budget on the same client. The
+  Redis-backed path has been verified against a real Redis instance (not just
+  the in-memory default) — see the README's "Testing the Redis-backed rate
+  limiter locally" section.
 
 ## 7. Who touched what: a deliberately honest audit trail
 
@@ -99,7 +105,47 @@ team without pretending to be real per-user authentication, which
 `DASHBOARD_PASSWORD` (a single shared password) doesn't provide either. See
 `ROADMAP.md` for what real per-user accounts (Supabase Auth) would take.
 
-## 8. Known gaps
+## 8. Closing the loop when there's no contact info
+
+If a requester leaves no email or phone, there was previously no way for a
+staff reply to ever reach them — `suggestedFollowUp` only ever appeared in
+the dashboard behind a "Copy" button (nothing in this app sends email or SMS).
+Every submission's own id now doubles as an unguessable tracking link
+(`/status/[id]`, `src/app/api/status/[id]/route.ts`): the requester sees it
+once, on the success screen, and can check back later. This does **not**
+weaken human-in-the-loop — staff must explicitly review (and may edit) the
+AI's draft and click "Publish reply" (`src/components/submission-detail.tsx`,
+`src/app/api/submissions/[id]/reply/route.ts`) before anything becomes
+visible at that link; nothing crosses from AI to requester automatically.
+
+The public status endpoint returns an explicit allowlist (`status`,
+`createdAt`, and the published reply if any) — never the original message,
+contact info, staff notes, or triage internals — and treats a malformed id
+identically to a valid-but-unknown one, so the response can't be used to
+probe whether an id is well-formed.
+
+**Accepted residual risk, with bounds:** the id functions as a bearer token —
+anyone who obtains it (a shared device, browser history, a screenshot) can
+read that submission's status and any published reply. This is a deliberate
+trade-off for a no-login lookup, not an oversight, and is why the success
+screen tells the requester to keep the link private. It's bounded three ways:
+the link stops working 90 days after the request was created (a hard expiry
+in `src/app/api/status/[id]/route.ts` — past it, the response is identical to
+a nonexistent id, not a distinct "expired" state that would itself leak
+information); `/status/[id]` is excluded from search indexing both via
+per-page `robots` metadata and `src/app/robots.ts`, so the link can't leak
+through a search engine's index or cache; and the id itself is a v4 UUID
+(~122 bits of entropy), not a short or sequential code, so it isn't guessable
+within the 90-day window.
+
+Verified against a real local Postgres instance (Supabase CLI, not just the
+in-memory local-JSON store): `SupabaseSubmissionStore.get()` on a malformed
+(non-UUID) id genuinely throws rather than returning `null`, confirming the
+try/catch in `src/app/api/status/[id]/route.ts` that unifies both cases into
+one 404 is handling a real behavior, not a hypothetical one. See the
+"Testing against a real Postgres locally" section of the README.
+
+## 9. Known gaps
 
 This is honest about what isn't solved yet — see `ROADMAP.md` for real
 per-user staff accounts (today's `DASHBOARD_PASSWORD` is a single shared

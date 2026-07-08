@@ -77,4 +77,24 @@ describe("LocalSubmissionStore", () => {
     const afterSecondUpdate = await store.update(created.id, { staffNotes: "Called back." });
     expect(afterSecondUpdate?.reviewedBy).toBe("Jordan");
   });
+
+  it("publishes a reply, leaves it untouched by unrelated updates, and can explicitly unpublish it", async () => {
+    const created = await store.create({ input, triage });
+    expect(created.publishedReply).toBeUndefined();
+
+    const published = await store.update(created.id, {
+      publishedReply: { message: "Here's an update.", publishedAt: "2026-01-01T00:00:00.000Z" },
+    });
+    expect(published?.publishedReply?.message).toBe("Here's an update.");
+
+    // A completely unrelated update (no publishedReply key at all) must not
+    // touch it — this is the "absent means don't touch" half of the tri-state.
+    const afterUnrelatedUpdate = await store.update(created.id, { staffNotes: "fyi" });
+    expect(afterUnrelatedUpdate?.publishedReply?.message).toBe("Here's an update.");
+
+    // Explicitly setting it to null must clear it — this is the half that a
+    // naive `??` merge would get wrong (null ?? existing resolves to existing).
+    const afterUnpublish = await store.update(created.id, { publishedReply: null });
+    expect(afterUnpublish?.publishedReply).toBeNull();
+  });
 });

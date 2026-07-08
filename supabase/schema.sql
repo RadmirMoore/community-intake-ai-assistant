@@ -14,7 +14,11 @@ create table if not exists public.submissions (
   staff_notes text not null default '',
   -- Self-reported staff display name, not verified identity — see
   -- docs/RESPONSIBLE_AI.md. Real per-user auth is tracked in ROADMAP.md.
-  reviewed_by text
+  reviewed_by text,
+  -- Staff-reviewed reply visible to the requester via /status/[id] (this
+  -- row's own id doubles as the unguessable tracking link). NULL means no
+  -- reply has been published yet, or one was explicitly unpublished.
+  published_reply jsonb
 );
 
 create index if not exists submissions_created_at_idx

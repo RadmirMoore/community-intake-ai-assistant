@@ -79,7 +79,7 @@ describe("POST /api/preview-triage", () => {
 
   it("uses a stricter rate limit than the real intake endpoint", async () => {
     await POST(makeRequest({ presetId: "housing-1" }));
-    expect(checkRateLimit).toHaveBeenCalledWith("1.2.3.4", 3, 10 * 60 * 1000);
+    expect(checkRateLimit).toHaveBeenCalledWith("preview-triage:1.2.3.4", 3, 10 * 60 * 1000);
   });
 
   it("returns 500 when triage fails", async () => {

@@ -4,6 +4,19 @@ import { describe, expect, it, vi } from "vitest";
 import { SubmissionDetail } from "@/components/submission-detail";
 import type { Submission } from "@/lib/types";
 
+function renderDetail(props: Partial<React.ComponentProps<typeof SubmissionDetail>> = {}) {
+  return render(
+    <SubmissionDetail
+      submission={submission}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+      onPublishReply={vi.fn().mockResolvedValue(undefined)}
+      onUnpublishReply={vi.fn().mockResolvedValue(undefined)}
+      {...props}
+    />,
+  );
+}
+
 const submission: Submission = {
   id: "1",
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -39,7 +52,7 @@ describe("SubmissionDetail", () => {
     // userEvent.setup() installs its own clipboard stub on navigator.clipboard,
     // overwriting anything set up beforehand — spy on it only after this call.
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
-    render(<SubmissionDetail submission={submission} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    renderDetail();
 
     await user.click(screen.getByRole("button", { name: /^copy$/i }));
 
@@ -50,7 +63,7 @@ describe("SubmissionDetail", () => {
   it("saves staff notes and shows a confirmation", async () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
-    render(<SubmissionDetail submission={submission} onUpdate={onUpdate} onDelete={vi.fn()} />);
+    renderDetail({ onUpdate });
 
     await user.type(screen.getByPlaceholderText(/internal notes/i), "Called back, left voicemail.");
     await user.click(screen.getByRole("button", { name: /save notes/i }));
@@ -64,7 +77,7 @@ describe("SubmissionDetail", () => {
   it("requires confirmation before deleting", async () => {
     const onDelete = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
-    render(<SubmissionDetail submission={submission} onUpdate={vi.fn()} onDelete={onDelete} />);
+    renderDetail({ onDelete });
 
     await user.click(screen.getByRole("button", { name: /^delete$/i }));
     expect(onDelete).not.toHaveBeenCalled();
@@ -74,18 +87,49 @@ describe("SubmissionDetail", () => {
   });
 
   it("shows who last reviewed the submission, when known", () => {
-    render(
-      <SubmissionDetail
-        submission={{ ...submission, reviewedBy: "Jordan" }}
-        onUpdate={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
+    renderDetail({ submission: { ...submission, reviewedBy: "Jordan" } });
     expect(screen.getByText(/last reviewed by/i)).toHaveTextContent("Jordan");
   });
 
   it("says nothing about review history when it isn't known yet", () => {
-    render(<SubmissionDetail submission={submission} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    renderDetail();
     expect(screen.queryByText(/last reviewed by/i)).not.toBeInTheDocument();
+  });
+
+  it("seeds the reply draft from the AI's suggested follow-up and publishes it", async () => {
+    const onPublishReply = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderDetail({ onPublishReply });
+
+    const textarea = screen.getByPlaceholderText(/draft a reply the requester will see/i);
+    expect(textarea).toHaveValue(submission.triage.suggestedFollowUp);
+
+    await user.clear(textarea);
+    await user.type(textarea, "Custom reply text.");
+    await user.click(screen.getByRole("button", { name: /^publish reply$/i }));
+
+    expect(onPublishReply).toHaveBeenCalledWith("1", "Custom reply text.");
+    expect(await screen.findByText(/^published$/i)).toBeInTheDocument();
+  });
+
+  it("shows publish status and an unpublish option once a reply is live", async () => {
+    const onUnpublishReply = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderDetail({
+      submission: {
+        ...submission,
+        publishedReply: {
+          message: "We're looking into this.",
+          publishedAt: "2026-01-02T00:00:00.000Z",
+        },
+      },
+      onUnpublishReply,
+    });
+
+    expect(screen.getByText(/visible to the requester/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /update published reply/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^unpublish$/i }));
+    expect(onUnpublishReply).toHaveBeenCalledWith("1");
   });
 });

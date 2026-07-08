@@ -1,13 +1,20 @@
 /**
- * Sliding-window rate limiter for the public intake endpoint. Each accepted
+ * Sliding-window rate limiter shared by every public route. Each accepted
  * intake triggers a paid Anthropic API call, so unlimited anonymous POSTs
- * would let a bot burn the API budget.
+ * would let a bot burn the API budget; other public routes reuse this same
+ * limiter with their own budgets.
  *
  * Backed by an in-memory map by default (good enough for a single server or a
  * demo, but per-process — it won't coordinate across serverless instances).
  * Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to switch to a
  * shared Upstash Redis-backed limiter instead, the same way storage picks
  * Supabase vs. a local JSON file (see src/lib/storage/index.ts).
+ *
+ * `clientId` is the bucket key, shared verbatim across every caller that
+ * passes the same string — so every call site MUST prefix it with its own
+ * route name (e.g. `` `intake:${clientIpFrom(request)}` ``), not just the raw
+ * IP. Two routes with different budgets calling this with the same bare IP
+ * would silently share one counter and steal each other's budget.
  */
 
 import { Redis } from "@upstash/redis";

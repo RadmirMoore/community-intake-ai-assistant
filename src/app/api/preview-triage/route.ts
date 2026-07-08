@@ -15,7 +15,7 @@ const PREVIEW_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(request: Request) {
   const limit = await checkRateLimit(
-    clientIpFrom(request),
+    `preview-triage:${clientIpFrom(request)}`,
     PREVIEW_RATE_LIMIT_MAX,
     PREVIEW_RATE_LIMIT_WINDOW_MS,
   );

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function SiteFooter() {
   return (
     <footer className="border-t border-line bg-paper">
@@ -9,6 +11,11 @@ export function SiteFooter() {
           This tool uses AI to help nonprofit staff triage requests faster. Every AI suggestion is a
           draft that a person reviews before any action is taken. In an emergency, call 911 or your
           local emergency line.
+        </p>
+        <p className="mt-2">
+          <Link href="/status" className="underline hover:text-ink">
+            Check a previous request
+          </Link>
         </p>
       </div>
     </footer>

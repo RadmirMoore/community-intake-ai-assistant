@@ -16,6 +16,7 @@ interface SubmissionRow {
   triage: Triage;
   staff_notes: string;
   reviewed_by: string | null;
+  published_reply: Submission["publishedReply"] | null;
 }
 
 function rowToSubmission(row: SubmissionRow): Submission {
@@ -28,6 +29,9 @@ function rowToSubmission(row: SubmissionRow): Submission {
     triage: row.triage,
     staffNotes: row.staff_notes ?? "",
     reviewedBy: row.reviewed_by ?? undefined,
+    // null is a meaningful state here ("explicitly unpublished"), unlike
+    // reviewed_by, so it's passed through as-is rather than `?? undefined`.
+    publishedReply: row.published_reply,
   };
 }
 
@@ -80,6 +84,7 @@ export class SupabaseSubmissionStore implements SubmissionStore {
     if (args.status !== undefined) patch.status = args.status;
     if (args.staffNotes !== undefined) patch.staff_notes = args.staffNotes;
     if (args.actor !== undefined) patch.reviewed_by = args.actor;
+    if (args.publishedReply !== undefined) patch.published_reply = args.publishedReply;
 
     const { data, error } = await this.client
       .from(this.table)

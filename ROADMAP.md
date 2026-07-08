@@ -7,6 +7,21 @@ They're written up here — instead of half-built — so a contributor can pick
 one up as a self-contained piece of work. Pull requests welcome; see
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
+**Resolved:** requests submitted with no email or phone had no path back to
+the requester — the AI's follow-up draft only ever appeared in the staff
+dashboard behind a "Copy" button, and nothing in this app sends email or SMS.
+Every submission's id now doubles as an unguessable tracking link
+(`/status/[id]`), shown once on the intake success screen; staff review and
+explicitly publish a reply (`src/components/submission-detail.tsx`,
+`src/app/api/submissions/[id]/reply/route.ts`) before it becomes visible
+there — human-in-the-loop is unchanged, nothing crosses from AI to requester
+automatically. See `docs/RESPONSIBLE_AI.md` §8 for the design, including the
+accepted (and now bounded — 90-day expiry, `noindex`, real UUID entropy)
+trade-off that the id acts as a bearer token. `SupabaseSubmissionStore` has
+also now been verified against a real local Postgres instance (Supabase CLI),
+not just the in-memory store — see the README's "Testing against a real
+Postgres locally" section.
+
 ## Real per-user staff accounts (Supabase Auth)
 
 Submissions now carry a `reviewedBy` field (`src/lib/types.ts`), populated
@@ -41,16 +56,17 @@ real color-contrast audit rather than a visual read of the palette.
 
 ## Multi-language coverage beyond the intake form
 
-The public intake form (`src/components/intake-form.tsx`) now supports
-English and Spanish via `src/lib/i18n/`, including server-side validation
-messages that match the requester's chosen language
-(`buildIntakeInputSchema` in `src/lib/types.ts`). Not yet translated: the
-`/intake` page's own heading and intro copy (outside the form component), the
-landing page, and the staff dashboard (deliberately English-only for now,
-since staff-facing text was out of scope for this pass). Adding a third
-language is mechanical — extend `Locale` and `DICTIONARIES` in
-`src/lib/i18n/dictionary.ts` — but translating the page chrome around the
-form is a small follow-up worth doing for full coherence.
+The public intake form (`src/components/intake-form.tsx`) and the
+`/status`/`/status/[id]` pages now support English and Spanish via
+`src/lib/i18n/`, including server-side validation messages on the intake form
+that match the requester's chosen language (`buildIntakeInputSchema` in
+`src/lib/types.ts`). Not yet translated: the `/intake` and `/status` pages'
+own headings (outside the form/lookup components), the landing page, and the
+staff dashboard (deliberately English-only for now, since staff-facing text
+was out of scope for this pass). Adding a third language is mechanical —
+extend `Locale` and `DICTIONARIES` in `src/lib/i18n/dictionary.ts` — but
+translating the page chrome around the form is a small follow-up worth doing
+for full coherence.
 
 **Resolved:** the rule-based fallback (`ruleBasedTriage` in
 `src/lib/triage.ts`, used only when `ANTHROPIC_API_KEY` is unset or the AI

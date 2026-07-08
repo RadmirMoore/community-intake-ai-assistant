@@ -8,7 +8,7 @@ import { buildIntakeInputSchema } from "@/lib/types";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const limit = await checkRateLimit(clientIpFrom(request));
+  const limit = await checkRateLimit(`intake:${clientIpFrom(request)}`);
   if (!limit.allowed) {
     return NextResponse.json(
       {

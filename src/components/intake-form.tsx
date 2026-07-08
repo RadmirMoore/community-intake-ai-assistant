@@ -36,6 +36,8 @@ export function IntakeForm() {
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -77,12 +79,21 @@ export function IntakeForm() {
         throw new Error(data?.error ?? t("genericError"));
       }
 
+      const data = (await res.json()) as { submission: { id: string } };
+      setSubmissionId(data.submission.id);
       setStatus("success");
       setForm(EMPTY);
     } catch (err) {
       setStatus("idle");
       setError(err instanceof Error ? err.message : t("genericError"));
     }
+  }
+
+  async function copyCode() {
+    if (!submissionId) return;
+    await navigator.clipboard.writeText(submissionId);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
   }
 
   const languageSwitcher = (
@@ -115,9 +126,40 @@ export function IntakeForm() {
         </div>
         <h2 className="mt-4 font-display text-xl font-medium text-ink">{t("successTitle")}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">{t("successBody")}</p>
+
+        {submissionId && (
+          <div className="mx-auto mt-6 max-w-md rounded-xl border border-line bg-white p-4 text-left">
+            <h3 className="font-display text-sm font-medium text-ink">{t("statusSaveIdTitle")}</h3>
+            <p className="mt-1 text-xs text-ink-soft">{t("statusSaveIdBody")}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <code className="flex-1 truncate rounded-md border border-line bg-paper px-2.5 py-1.5 font-mono text-xs text-ink">
+                {submissionId}
+              </code>
+              <button
+                type="button"
+                onClick={() => void copyCode()}
+                aria-live="polite"
+                className="rounded-md border border-brand/30 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-dark transition hover:bg-brand-soft"
+              >
+                {codeCopied ? t("statusCodeCopied") : t("statusCopyCode")}
+              </button>
+            </div>
+            <Link
+              href={`/status/${submissionId}`}
+              className="mt-3 inline-block text-xs font-medium text-brand-dark underline hover:text-brand"
+            >
+              {t("statusCheckLinkCta")}
+            </Link>
+            <p className="mt-3 text-xs text-ink-faint">{t("statusPrivacyNote")}</p>
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={() => setStatus("idle")}
+          onClick={() => {
+            setStatus("idle");
+            setSubmissionId(null);
+          }}
           className="mt-6 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-paper transition hover:bg-brand-dark"
         >
           {t("submitAnother")}
