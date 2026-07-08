@@ -19,11 +19,10 @@ export interface Dictionary {
   nameLabel: string;
   namePlaceholder: string;
   emailLabel: string;
-  emailOptional: string;
   emailPlaceholder: string;
   phoneLabel: string;
-  phoneOptional: string;
   phonePlaceholder: string;
+  contactRequiredHint: string;
   preferredContactLabel: string;
   preferredContactEither: string;
   preferredContactEmail: string;
@@ -46,6 +45,7 @@ export interface Dictionary {
   genericError: string;
   zodNameRequired: string;
   zodEmailInvalid: string;
+  zodContactRequired: string;
   zodMessageTooShort: string;
   zodConsentRequired: string;
   statusSaveIdTitle: string;
@@ -75,11 +75,10 @@ export const DICTIONARIES: Record<Locale, Dictionary> = {
     nameLabel: "Your name",
     namePlaceholder: "How should we address you?",
     emailLabel: "Email",
-    emailOptional: "(optional)",
     emailPlaceholder: "you@example.com",
     phoneLabel: "Phone",
-    phoneOptional: "(optional)",
     phonePlaceholder: "(555) 555-5555",
+    contactRequiredHint: "Share at least one — email or phone.",
     preferredContactLabel: "Preferred contact",
     preferredContactEither: "Either is fine",
     preferredContactEmail: "Email",
@@ -105,11 +104,12 @@ export const DICTIONARIES: Record<Locale, Dictionary> = {
     genericError: "Something went wrong. Please try again.",
     zodNameRequired: "Please share a name we can use.",
     zodEmailInvalid: "Enter a valid email.",
+    zodContactRequired: "Please share an email or phone number so we can follow up.",
     zodMessageTooShort: "Tell us a little more so we can route your request.",
     zodConsentRequired: "We need your consent to have a staff member review this request.",
     statusSaveIdTitle: "Save your request code",
     statusSaveIdBody:
-      "We didn't get an email or phone number from you, so this is the only way to check back for a reply. Bookmark the link or copy the code below.",
+      "We don't send automatic notifications yet, so this code is the only way to check back for a reply. Bookmark the link or copy the code below.",
     statusCopyCode: "Copy code",
     statusCodeCopied: "Copied",
     statusCheckLinkCta: "Check status",
@@ -135,11 +135,10 @@ export const DICTIONARIES: Record<Locale, Dictionary> = {
     nameLabel: "Tu nombre",
     namePlaceholder: "¿Cómo debemos llamarte?",
     emailLabel: "Correo electrónico",
-    emailOptional: "(opcional)",
     emailPlaceholder: "tucorreo@ejemplo.com",
     phoneLabel: "Teléfono",
-    phoneOptional: "(opcional)",
     phonePlaceholder: "(555) 555-5555",
+    contactRequiredHint: "Comparte al menos uno: correo electrónico o teléfono.",
     preferredContactLabel: "Forma de contacto preferida",
     preferredContactEither: "Cualquiera está bien",
     preferredContactEmail: "Correo electrónico",
@@ -165,11 +164,12 @@ export const DICTIONARIES: Record<Locale, Dictionary> = {
     genericError: "Algo salió mal. Inténtalo de nuevo.",
     zodNameRequired: "Cuéntanos un nombre que podamos usar.",
     zodEmailInvalid: "Ingresa un correo electrónico válido.",
+    zodContactRequired: "Comparte un correo electrónico o un teléfono para poder responderte.",
     zodMessageTooShort: "Cuéntanos un poco más para poder atender tu solicitud.",
     zodConsentRequired: "Necesitamos tu consentimiento para que el personal revise esta solicitud.",
     statusSaveIdTitle: "Guarda el código de tu solicitud",
     statusSaveIdBody:
-      "No recibimos un correo ni un teléfono tuyo, así que esta es la única forma de ver si hay una respuesta. Guarda el enlace o copia el código.",
+      "Todavía no enviamos notificaciones automáticas, así que este código es la única forma de ver si hay una respuesta. Guarda el enlace o copia el código.",
     statusCopyCode: "Copiar código",
     statusCodeCopied: "Copiado",
     statusCheckLinkCta: "Ver estado",

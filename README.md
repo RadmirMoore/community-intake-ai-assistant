@@ -17,7 +17,7 @@ measured, not just assumed.
 
 ## What it does
 
-1. **Receives requests** through a simple, low-pressure public intake form. Contact details are optional and consent is required.
+1. **Receives requests** through a simple, low-pressure public intake form. ZIP code is optional, at least one of email or phone is required, and consent is required.
 2. **Triages with AI**: Claude classifies each request (housing, food, healthcare, legal, emergency, general), assigns an urgency, writes a short summary for staff, drafts a follow-up message in the requester's own language, lists recommended next steps, and raises safety flags.
 3. **Keeps humans in control**: every AI output is a *draft* on a staff dashboard. Staff review, edit, change status, and add internal notes.
 4. **Closes the loop** even with no contact info: every submission gets an unguessable tracking link (`/status/[id]`); staff review and explicitly publish a reply before it's ever visible there.
@@ -32,11 +32,11 @@ This is the most important part of the project.
 - **No automated legal or medical advice.** The system prompt explicitly forbids diagnosis, treatment, or legal advice; the assistant points people to qualified humans instead.
 - **Emergency flagging.** Messages that look urgent (immediate danger, homelessness tonight, etc.) are flagged for immediate human attention and surfaced on the dashboard.
 - **A request is never lost.** If the AI call fails (outage, rate limit), the submission is still stored with a transparent rule-based triage and flagged for manual review.
-- **Minimal data collection.** Contact fields are optional; explicit consent is required before a request is stored; the form discourages sharing unnecessary sensitive details.
+- **Minimal data collection.** ZIP code is optional and only one of email/phone is required, not both; explicit consent is required before a request is stored; the form discourages sharing unnecessary sensitive details.
 - **Deletable.** Staff can permanently delete a submission from the dashboard once it's no longer needed — there is no automated retention schedule yet (see `ROADMAP.md`), but deletion doesn't require touching the database or JSON file by hand.
 - **Staff-only dashboard.** With `DASHBOARD_PASSWORD` set, the dashboard and its APIs require a staff sign-in (httpOnly session cookie). Without it the app runs in open demo mode and says so on screen.
 - **Who reviewed what.** Staff enter a display name once (stored in their browser); it's attached to a submission whenever they change its status or notes. This is self-reported, not verified identity — see [`docs/RESPONSIBLE_AI.md`](docs/RESPONSIBLE_AI.md) for why, and what real per-user accounts would take.
-- **A reply can always reach the requester.** Even with no email or phone, a submission's own id is an unguessable tracking link (`/status/[id]`). Staff must explicitly publish a reply before anything appears there — nothing crosses from AI to requester automatically, and the public endpoint only ever returns status + a published reply, never the original message or contact info.
+- **A reply can always reach the requester.** There's no automated email/SMS sending in this app yet, so a submission's own id doubles as an unguessable tracking link (`/status/[id]`) — the one built-in delivery path regardless of what contact info was given. Staff must explicitly publish a reply before anything appears there — nothing crosses from AI to requester automatically, and the public endpoint only ever returns status + a published reply, never the original message or contact info.
 - **Rate limiting.** The public intake endpoint is rate-limited per IP so bots can't flood the queue or burn the API budget. In-memory by default; set `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` for a shared backend on serverless/multi-instance deployments.
 - **Server-only secrets.** The Anthropic key and Supabase service-role key are only ever used on the server, never shipped to the browser.
 

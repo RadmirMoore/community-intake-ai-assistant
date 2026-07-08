@@ -194,39 +194,49 @@ export function IntakeForm() {
           )}
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-ink">
-              {t("emailLabel")} <span className="text-ink-faint">{t("emailOptional")}</span>
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              className={inputClass}
-              placeholder={t("emailPlaceholder")}
-              aria-invalid={Boolean(fieldErrors.email)}
-              aria-describedby={fieldErrors.email ? "email-error" : undefined}
-            />
-            {fieldErrors.email && (
-              <p id="email-error" role="alert" className="mt-1 text-xs text-red-600">
-                {fieldErrors.email}
-              </p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-ink">
-              {t("phoneLabel")} <span className="text-ink-faint">{t("phoneOptional")}</span>
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              value={form.phone}
-              onChange={(e) => update("phone", e.target.value)}
-              className={inputClass}
-              placeholder={t("phonePlaceholder")}
-            />
+        <div>
+          <p className="text-xs text-ink-faint">{t("contactRequiredHint")}</p>
+          <div className="mt-2 grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-ink">
+                {t("emailLabel")}
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={form.email}
+                onChange={(e) => update("email", e.target.value)}
+                className={inputClass}
+                placeholder={t("emailPlaceholder")}
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
+              />
+              {fieldErrors.email && (
+                <p id="email-error" role="alert" className="mt-1 text-xs text-red-600">
+                  {fieldErrors.email}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-ink">
+                {t("phoneLabel")}
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => update("phone", e.target.value)}
+                className={inputClass}
+                placeholder={t("phonePlaceholder")}
+                aria-invalid={Boolean(fieldErrors.phone)}
+                aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
+              />
+              {fieldErrors.phone && (
+                <p id="phone-error" role="alert" className="mt-1 text-xs text-red-600">
+                  {fieldErrors.phone}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 

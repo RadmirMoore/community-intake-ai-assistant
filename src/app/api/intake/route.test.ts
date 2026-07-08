@@ -19,6 +19,7 @@ import type { Triage } from "@/lib/types";
 
 const validBody = {
   fullName: "Jordan Rivera",
+  email: "jordan@example.com",
   message: "Looking for help finding a food pantry near me this week.",
   consent: true,
 };

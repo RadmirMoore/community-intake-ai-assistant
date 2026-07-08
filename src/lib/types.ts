@@ -30,9 +30,10 @@ export const STATUSES = [
 export type Status = (typeof STATUSES)[number];
 
 /**
- * What the person submits through the public intake form. We intentionally keep
- * contact fields optional so someone in crisis can ask for help without being
- * forced to hand over sensitive data.
+ * What the person submits through the public intake form. ZIP code stays
+ * fully optional, but at least one of email/phone is required — otherwise
+ * there is no way for anyone (staff or this app) to ever reach the requester
+ * outside of the /status/[id] tracking link.
  */
 /**
  * Builds the schema with error messages in the given locale, so a Spanish
@@ -42,15 +43,22 @@ export type Status = (typeof STATUSES)[number];
  */
 export function buildIntakeInputSchema(locale: Locale = DEFAULT_LOCALE) {
   const dict = DICTIONARIES[locale];
-  return z.object({
-    fullName: z.string().trim().min(1, dict.zodNameRequired).max(120),
-    email: z.string().trim().email(dict.zodEmailInvalid).max(160).optional().or(z.literal("")),
-    phone: z.string().trim().max(40).optional().or(z.literal("")),
-    preferredContact: z.enum(["email", "phone", "either"]).default("either"),
-    zipCode: z.string().trim().max(16).optional().or(z.literal("")),
-    message: z.string().trim().min(10, dict.zodMessageTooShort).max(4000),
-    consent: z.literal(true, { message: dict.zodConsentRequired }),
-  });
+  return z
+    .object({
+      fullName: z.string().trim().min(1, dict.zodNameRequired).max(120),
+      email: z.string().trim().email(dict.zodEmailInvalid).max(160).optional().or(z.literal("")),
+      phone: z.string().trim().max(40).optional().or(z.literal("")),
+      preferredContact: z.enum(["email", "phone", "either"]).default("either"),
+      zipCode: z.string().trim().max(16).optional().or(z.literal("")),
+      message: z.string().trim().min(10, dict.zodMessageTooShort).max(4000),
+      consent: z.literal(true, { message: dict.zodConsentRequired }),
+    })
+    .superRefine((data, ctx) => {
+      if (!data.email && !data.phone) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: dict.zodContactRequired, path: ["email"] });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: dict.zodContactRequired, path: ["phone"] });
+      }
+    });
 }
 
 export const intakeInputSchema = buildIntakeInputSchema(DEFAULT_LOCALE);
