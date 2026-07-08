@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_LOCALE, DICTIONARIES, type Locale } from "@/lib/i18n/dictionary";
 
 /**
  * Service categories a small nonprofit typically triages: food security,
@@ -33,21 +34,26 @@ export type Status = (typeof STATUSES)[number];
  * contact fields optional so someone in crisis can ask for help without being
  * forced to hand over sensitive data.
  */
-export const intakeInputSchema = z.object({
-  fullName: z.string().trim().min(1, "Please share a name we can use.").max(120),
-  email: z.string().trim().email("Enter a valid email.").max(160).optional().or(z.literal("")),
-  phone: z.string().trim().max(40).optional().or(z.literal("")),
-  preferredContact: z.enum(["email", "phone", "either"]).default("either"),
-  zipCode: z.string().trim().max(16).optional().or(z.literal("")),
-  message: z
-    .string()
-    .trim()
-    .min(10, "Tell us a little more so we can route your request.")
-    .max(4000),
-  consent: z.literal(true, {
-    message: "We need your consent to have a staff member review this request.",
-  }),
-});
+/**
+ * Builds the schema with error messages in the given locale, so a Spanish
+ * speaker filling out the form (client-side) and the server validating the
+ * same submission (api/intake/route.ts) can agree on what the errors say.
+ * The shape is identical across locales — only the messages differ.
+ */
+export function buildIntakeInputSchema(locale: Locale = DEFAULT_LOCALE) {
+  const dict = DICTIONARIES[locale];
+  return z.object({
+    fullName: z.string().trim().min(1, dict.zodNameRequired).max(120),
+    email: z.string().trim().email(dict.zodEmailInvalid).max(160).optional().or(z.literal("")),
+    phone: z.string().trim().max(40).optional().or(z.literal("")),
+    preferredContact: z.enum(["email", "phone", "either"]).default("either"),
+    zipCode: z.string().trim().max(16).optional().or(z.literal("")),
+    message: z.string().trim().min(10, dict.zodMessageTooShort).max(4000),
+    consent: z.literal(true, { message: dict.zodConsentRequired }),
+  });
+}
+
+export const intakeInputSchema = buildIntakeInputSchema(DEFAULT_LOCALE);
 export type IntakeInput = z.infer<typeof intakeInputSchema>;
 
 /**
@@ -77,6 +83,21 @@ export interface Submission {
   input: IntakeInput;
   triage: Triage;
   staffNotes: string;
+  /**
+   * Self-reported display name of whoever last changed this submission — not
+   * verified identity (there's no login behind it in local/shared-password
+   * mode), just enough to answer "who touched this last." See
+   * docs/RESPONSIBLE_AI.md.
+   */
+  reviewedBy?: string;
+  /**
+   * A staff-reviewed reply visible to the requester via /status/[id] — the
+   * submission's own id doubles as an unguessable tracking link, since there
+   * is no other way for the AI's draft to ever reach someone who left no
+   * contact info. `null` (not just absent) means "explicitly unpublished" —
+   * see docs/RESPONSIBLE_AI.md for why this exists and its tradeoffs.
+   */
+  publishedReply?: { message: string; publishedAt: string; publishedBy?: string } | null;
 }
 
 export const statusUpdateSchema = z.object({
@@ -84,6 +105,12 @@ export const statusUpdateSchema = z.object({
   staffNotes: z.string().max(4000).optional(),
 });
 export type StatusUpdate = z.infer<typeof statusUpdateSchema>;
+
+/** Staff publishing (or revising) a reply visible to the requester. */
+export const publishReplySchema = z.object({
+  message: z.string().trim().min(1, "Reply can't be empty.").max(4000),
+});
+export type PublishReplyInput = z.infer<typeof publishReplySchema>;
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   housing: "Housing",

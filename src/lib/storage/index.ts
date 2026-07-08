@@ -24,3 +24,8 @@ export function getStore(): SubmissionStore {
 }
 
 export type { SubmissionStore } from "@/lib/storage/store";
+
+/** Test-only: clears the cached backend choice so tests can flip env vars between cases. */
+export function __resetStoreForTests(): void {
+  cached = null;
+}

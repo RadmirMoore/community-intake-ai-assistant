@@ -72,10 +72,23 @@ export class LocalSubmissionStore implements SubmissionStore {
       ...existing,
       status: args.status ?? existing.status,
       staffNotes: args.staffNotes ?? existing.staffNotes,
+      reviewedBy: args.actor ?? existing.reviewedBy,
+      // `??` can't express "clear to null" (null ?? existing resolves back to
+      // existing) — publishing/unpublishing needs real tri-state, so check
+      // presence explicitly instead of falling back on nullishness.
+      publishedReply: "publishedReply" in args ? args.publishedReply : existing.publishedReply,
       updatedAt: new Date().toISOString(),
     };
     submissions[index] = updated;
     await this.writeAll(submissions);
     return updated;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const submissions = await this.readAll();
+    const next = submissions.filter((s) => s.id !== id);
+    if (next.length === submissions.length) return false;
+    await this.writeAll(next);
+    return true;
   }
 }

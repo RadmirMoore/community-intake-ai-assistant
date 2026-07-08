@@ -15,6 +15,28 @@ import { cookies } from "next/headers";
 export const STAFF_COOKIE = "staff_session";
 export const STAFF_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60; // one work day
 
+/**
+ * Header carrying a self-reported staff display name (see docs/RESPONSIBLE_AI.md).
+ * Not an auth mechanism — DASHBOARD_PASSWORD above is what gates access. This
+ * only labels *who says they* made a change, for the reviewedBy audit field.
+ */
+export const STAFF_NAME_HEADER = "X-Staff-Name";
+export const STAFF_NAME_MAX_LENGTH = 80;
+
+/** Decodes and sanitizes the self-reported staff name header, if present. */
+export function readStaffNameHeader(request: Request): string | undefined {
+  const raw = request.headers.get(STAFF_NAME_HEADER);
+  if (!raw) return undefined;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    decoded = raw;
+  }
+  const trimmed = decoded.trim().slice(0, STAFF_NAME_MAX_LENGTH);
+  return trimmed || undefined;
+}
+
 export function isDashboardProtected(): boolean {
   return Boolean(process.env.DASHBOARD_PASSWORD);
 }

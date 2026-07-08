@@ -8,15 +8,32 @@ import { formatDateTime } from "@/lib/ui";
 interface Props {
   submission: Submission;
   onUpdate: (id: string, patch: { status?: Status; staffNotes?: string }) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onPublishReply: (id: string, message: string) => Promise<void>;
+  onUnpublishReply: (id: string) => Promise<void>;
 }
 
-export function SubmissionDetail({ submission, onUpdate }: Props) {
+export function SubmissionDetail({
+  submission,
+  onUpdate,
+  onDelete,
+  onPublishReply,
+  onUnpublishReply,
+}: Props) {
   // This component is remounted via a `key` on the submission id (see Dashboard),
   // so initializing from props here always reflects the selected submission.
   const [notes, setNotes] = useState(submission.staffNotes);
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [replyDraft, setReplyDraft] = useState(
+    submission.publishedReply?.message ?? submission.triage.suggestedFollowUp,
+  );
+  const [publishing, setPublishing] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
+  const [justPublished, setJustPublished] = useState(false);
 
   const { input, triage } = submission;
 
@@ -25,6 +42,26 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
     await onUpdate(submission.id, { staffNotes: notes });
     setSavingNotes(false);
     setNotesSaved(true);
+  }
+
+  async function publishReply() {
+    setPublishing(true);
+    await onPublishReply(submission.id, replyDraft);
+    setPublishing(false);
+    setJustPublished(true);
+  }
+
+  async function unpublishReply() {
+    setUnpublishing(true);
+    await onUnpublishReply(submission.id);
+    setUnpublishing(false);
+    setJustPublished(false);
+  }
+
+  async function confirmDelete() {
+    setDeleting(true);
+    await onDelete(submission.id);
+    setDeleting(false);
   }
 
   async function copyFollowUp() {
@@ -36,7 +73,11 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
   return (
     <div className="space-y-5">
       {triage.requiresImmediateAttention && (
-        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-800"
+        >
           ⚠ This request was flagged as possibly needing immediate human attention.
         </div>
       )}
@@ -47,49 +88,54 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
           <UrgencyBadge urgency={triage.urgency} />
           <StatusBadge status={submission.status} />
         </div>
-        <h2 className="mt-3 text-xl font-semibold text-slate-900">{input.fullName}</h2>
-        <p className="text-sm text-slate-500">Received {formatDateTime(submission.createdAt)}</p>
+        <h2 className="mt-3 font-display text-xl font-medium text-ink">{input.fullName}</h2>
+        <p className="text-sm text-ink-faint">Received {formatDateTime(submission.createdAt)}</p>
+        {submission.reviewedBy && (
+          <p className="mt-0.5 text-xs text-ink-faint">
+            Last reviewed by <span className="font-medium text-ink-soft">{submission.reviewedBy}</span>
+          </p>
+        )}
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Contact</h3>
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Contact</h3>
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-slate-500">Email</dt>
-          <dd className="text-slate-800">{input.email || "—"}</dd>
-          <dt className="text-slate-500">Phone</dt>
-          <dd className="text-slate-800">{input.phone || "—"}</dd>
-          <dt className="text-slate-500">Preferred</dt>
-          <dd className="text-slate-800 capitalize">{input.preferredContact}</dd>
-          <dt className="text-slate-500">ZIP</dt>
-          <dd className="text-slate-800">{input.zipCode || "—"}</dd>
+          <dt className="text-ink-faint">Email</dt>
+          <dd className="text-ink">{input.email || "—"}</dd>
+          <dt className="text-ink-faint">Phone</dt>
+          <dd className="text-ink">{input.phone || "—"}</dd>
+          <dt className="text-ink-faint">Preferred</dt>
+          <dd className="text-ink capitalize">{input.preferredContact}</dd>
+          <dt className="text-ink-faint">ZIP</dt>
+          <dd className="text-ink">{input.zipCode || "—"}</dd>
         </dl>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
           Original message
         </h3>
-        <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{input.message}</p>
+        <p className="mt-2 whitespace-pre-wrap text-sm text-ink">{input.message}</p>
       </section>
 
-      <section className="rounded-xl border border-teal-200 bg-teal-50/50 p-4">
+      <section className="rounded-xl border border-brand/25 bg-brand-soft/60 p-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-teal-700">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-dark">
             AI triage · review before acting
           </h3>
-          <span className="text-xs text-teal-700">
+          <span className="text-xs text-brand-dark">
             {triage.generatedByAI
               ? `${triage.model} · ${Math.round(triage.confidence * 100)}% conf.`
               : "rule-based (no AI key)"}
           </span>
         </div>
 
-        <p className="mt-3 text-sm font-medium text-slate-500">Summary</p>
-        <p className="mt-1 text-sm text-slate-800">{triage.summary}</p>
+        <p className="mt-3 text-sm font-medium text-ink-faint">Summary</p>
+        <p className="mt-1 text-sm text-ink">{triage.summary}</p>
 
         {triage.safetyFlags.length > 0 && (
           <>
-            <p className="mt-3 text-sm font-medium text-slate-500">Safety flags</p>
+            <p className="mt-3 text-sm font-medium text-ink-faint">Safety flags</p>
             <ul className="mt-1 space-y-1">
               {triage.safetyFlags.map((flag, i) => (
                 <li key={i} className="flex gap-2 text-sm text-red-700">
@@ -103,11 +149,11 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
 
         {triage.recommendedActions.length > 0 && (
           <>
-            <p className="mt-3 text-sm font-medium text-slate-500">Recommended next steps</p>
+            <p className="mt-3 text-sm font-medium text-ink-faint">Recommended next steps</p>
             <ul className="mt-1 space-y-1">
               {triage.recommendedActions.map((action, i) => (
-                <li key={i} className="flex gap-2 text-sm text-slate-800">
-                  <span aria-hidden className="text-teal-600">
+                <li key={i} className="flex gap-2 text-sm text-ink">
+                  <span aria-hidden className="text-brand">
                     ✓
                   </span>
                   <span>{action}</span>
@@ -119,26 +165,82 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
 
         <div className="mt-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-500">Suggested follow-up (draft)</p>
+            <p className="text-sm font-medium text-ink-faint">Suggested follow-up (draft)</p>
             <button
               type="button"
               onClick={copyFollowUp}
-              className="rounded-md border border-teal-300 bg-white px-2.5 py-1 text-xs font-medium text-teal-700 transition hover:bg-teal-50"
+              aria-live="polite"
+              className="rounded-md border border-brand/30 bg-white px-2.5 py-1 text-xs font-medium text-brand-dark transition hover:bg-brand-soft"
             >
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
-          <pre className="mt-1 whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 font-sans text-sm text-slate-800">
+          <pre className="mt-1 whitespace-pre-wrap rounded-lg border border-line bg-white p-3 font-sans text-sm text-ink">
             {triage.suggestedFollowUp}
           </pre>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-ink-faint">
             Edit this draft before sending. Do not promise outcomes or eligibility.
           </p>
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+          Reply to requester
+        </h3>
+        <p className="mt-1 text-xs text-ink-faint">
+          {submission.publishedReply ? (
+            <>
+              Published {formatDateTime(submission.publishedReply.publishedAt)} — visible to the
+              requester at their status link. Nothing reaches them until you publish.
+            </>
+          ) : (
+            "Not published yet — the requester can't see this until you publish it."
+          )}
+        </p>
+        <textarea
+          value={replyDraft}
+          onChange={(e) => {
+            setReplyDraft(e.target.value);
+            setJustPublished(false);
+          }}
+          rows={4}
+          className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+          placeholder="Draft a reply the requester will see. Start from the AI's suggestion above and edit as needed."
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void publishReply()}
+            disabled={publishing || !replyDraft.trim()}
+            className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-paper transition hover:bg-brand-dark disabled:opacity-60"
+          >
+            {publishing
+              ? "Publishing…"
+              : submission.publishedReply
+                ? "Update published reply"
+                : "Publish reply"}
+          </button>
+          {submission.publishedReply && (
+            <button
+              type="button"
+              onClick={() => void unpublishReply()}
+              disabled={unpublishing}
+              className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+            >
+              {unpublishing ? "Unpublishing…" : "Unpublish"}
+            </button>
+          )}
+          {justPublished && (
+            <span role="status" aria-live="polite" className="text-xs text-brand-dark">
+              Published
+            </span>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
           Update status
         </h3>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -150,8 +252,8 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
               disabled={submission.status === s}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
                 submission.status === s
-                  ? "cursor-default bg-slate-900 text-white"
-                  : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  ? "cursor-default bg-ink text-paper"
+                  : "border border-line bg-white text-ink-soft hover:bg-paper-dim"
               }`}
             >
               {STATUS_LABELS[s]}
@@ -160,8 +262,8 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Staff notes</h3>
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Staff notes</h3>
         <textarea
           value={notes}
           onChange={(e) => {
@@ -169,7 +271,7 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
             setNotesSaved(false);
           }}
           rows={3}
-          className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
+          className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
           placeholder="Internal notes for your team (not visible to the requester)."
         />
         <div className="mt-2 flex items-center gap-3">
@@ -177,12 +279,54 @@ export function SubmissionDetail({ submission, onUpdate }: Props) {
             type="button"
             onClick={saveNotes}
             disabled={savingNotes}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60"
+            className="rounded-md bg-ink px-3 py-1.5 text-sm font-medium text-paper transition hover:bg-brand-dark disabled:opacity-60"
           >
             {savingNotes ? "Saving…" : "Save notes"}
           </button>
-          {notesSaved && <span className="text-xs text-emerald-600">Saved</span>}
+          {notesSaved && (
+            <span role="status" aria-live="polite" className="text-xs text-brand-dark">
+              Saved
+            </span>
+          )}
         </div>
+      </section>
+
+      <section className="rounded-xl border border-red-200 bg-white p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-red-700">
+          Delete request
+        </h3>
+        <p className="mt-1 text-xs text-ink-faint">
+          Permanently removes this submission. There is no automated retention
+          policy yet, so deleting is the only way to remove data on request.
+        </p>
+        {confirmingDelete ? (
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void confirmDelete()}
+              disabled={deleting}
+              className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-60"
+            >
+              {deleting ? "Deleting…" : "Yes, delete permanently"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              disabled={deleting}
+              className="rounded-md border border-line bg-white px-3 py-1.5 text-sm font-medium text-ink-soft transition hover:bg-paper-dim"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(true)}
+            className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
+          >
+            Delete
+          </button>
+        )}
       </section>
     </div>
   );

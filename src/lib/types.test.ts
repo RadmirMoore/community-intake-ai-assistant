@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { intakeInputSchema, statusUpdateSchema } from "@/lib/types";
+import { buildIntakeInputSchema, intakeInputSchema, statusUpdateSchema } from "@/lib/types";
 
 const validInput = {
   fullName: "Jane Doe",
@@ -45,6 +45,22 @@ describe("intakeInputSchema", () => {
   it("caps message length", () => {
     const parsed = intakeInputSchema.safeParse({ ...validInput, message: "x".repeat(4001) });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("buildIntakeInputSchema", () => {
+  it("returns Spanish error messages when built for the es locale", () => {
+    const schema = buildIntakeInputSchema("es");
+    const result = schema.safeParse({ ...validInput, message: "help" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toMatch(/Cuéntanos/);
+  });
+
+  it("has the same shape regardless of locale", () => {
+    const en = buildIntakeInputSchema("en").safeParse(validInput);
+    const es = buildIntakeInputSchema("es").safeParse(validInput);
+    expect(en.success).toBe(true);
+    expect(es.success).toBe(true);
   });
 });
 

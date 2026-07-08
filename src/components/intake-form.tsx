@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useLocale } from "@/lib/i18n/context";
+import { buildIntakeInputSchema } from "@/lib/types";
 
 type FormState = {
   fullName: string;
@@ -24,12 +26,18 @@ const EMPTY: FormState = {
 };
 
 const inputClass =
-  "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30";
+  "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink shadow-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25";
+
+type FieldErrors = Partial<Record<keyof FormState, string>>;
 
 export function IntakeForm() {
+  const { locale, setLocale, t } = useLocale();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -39,10 +47,18 @@ export function IntakeForm() {
     event.preventDefault();
     setError(null);
 
-    if (!form.consent) {
-      setError("Please confirm consent so a staff member can review your request.");
+    const parsed = buildIntakeInputSchema(locale).safeParse(form);
+    if (!parsed.success) {
+      const flat = parsed.error.flatten().fieldErrors;
+      const nextFieldErrors: FieldErrors = {};
+      for (const key of Object.keys(flat) as Array<keyof FormState>) {
+        const message = flat[key]?.[0];
+        if (message) nextFieldErrors[key] = message;
+      }
+      setFieldErrors(nextFieldErrors);
       return;
     }
+    setFieldErrors({});
 
     setStatus("submitting");
     try {
@@ -54,50 +70,111 @@ export function IntakeForm() {
           email: form.email || undefined,
           phone: form.phone || undefined,
           zipCode: form.zipCode || undefined,
+          locale,
         }),
       });
 
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? "Something went wrong. Please try again.");
+        throw new Error(data?.error ?? t("genericError"));
       }
 
+      const data = (await res.json()) as { submission: { id: string } };
+      setSubmissionId(data.submission.id);
       setStatus("success");
       setForm(EMPTY);
     } catch (err) {
       setStatus("idle");
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : t("genericError"));
     }
   }
 
+  async function copyCode() {
+    if (!submissionId) return;
+    await navigator.clipboard.writeText(submissionId);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  }
+
+  const languageSwitcher = (
+    <div className="flex items-center justify-end gap-1 text-xs">
+      <span className="sr-only">{t("languageLabel")}</span>
+      {(["en", "es"] as const).map((code) => (
+        <button
+          key={code}
+          type="button"
+          onClick={() => setLocale(code)}
+          aria-pressed={locale === code}
+          className={`rounded-md px-2 py-1 font-medium transition ${
+            locale === code
+              ? "bg-ink text-paper"
+              : "text-ink-faint hover:bg-paper-dim hover:text-ink"
+          }`}
+        >
+          {code === "en" ? t("languageEnglish") : t("languageSpanish")}
+        </button>
+      ))}
+    </div>
+  );
+
   if (status === "success") {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-2xl text-white">
+      <div className="rounded-2xl border border-line bg-brand-soft p-8 text-center">
+        {languageSwitcher}
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand text-2xl text-paper">
           ✓
         </div>
-        <h2 className="mt-4 text-xl font-semibold text-emerald-900">We received your request</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-emerald-800">
-          A member of our team will review your request and follow up with you. If your situation is
-          an emergency, please call 911 or your local emergency line now.
-        </p>
+        <h2 className="mt-4 font-display text-xl font-medium text-ink">{t("successTitle")}</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">{t("successBody")}</p>
+
+        {submissionId && (
+          <div className="mx-auto mt-6 max-w-md rounded-xl border border-line bg-white p-4 text-left">
+            <h3 className="font-display text-sm font-medium text-ink">{t("statusSaveIdTitle")}</h3>
+            <p className="mt-1 text-xs text-ink-soft">{t("statusSaveIdBody")}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <code className="flex-1 truncate rounded-md border border-line bg-paper px-2.5 py-1.5 font-mono text-xs text-ink">
+                {submissionId}
+              </code>
+              <button
+                type="button"
+                onClick={() => void copyCode()}
+                aria-live="polite"
+                className="rounded-md border border-brand/30 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-dark transition hover:bg-brand-soft"
+              >
+                {codeCopied ? t("statusCodeCopied") : t("statusCopyCode")}
+              </button>
+            </div>
+            <Link
+              href={`/status/${submissionId}`}
+              className="mt-3 inline-block text-xs font-medium text-brand-dark underline hover:text-brand"
+            >
+              {t("statusCheckLinkCta")}
+            </Link>
+            <p className="mt-3 text-xs text-ink-faint">{t("statusPrivacyNote")}</p>
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={() => setStatus("idle")}
-          className="mt-6 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          onClick={() => {
+            setStatus("idle");
+            setSubmissionId(null);
+          }}
+          className="mt-6 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-paper transition hover:bg-brand-dark"
         >
-          Submit another request
+          {t("submitAnother")}
         </button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-      <div className="grid gap-5">
+    <form onSubmit={handleSubmit} className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+      {languageSwitcher}
+      <div className="mt-4 grid gap-5">
         <div>
-          <label htmlFor="fullName" className="block text-sm font-medium text-slate-700">
-            Your name <span className="text-red-500">*</span>
+          <label htmlFor="fullName" className="block text-sm font-medium text-ink">
+            {t("nameLabel")} <span className="text-red-600">*</span>
           </label>
           <input
             id="fullName"
@@ -106,14 +183,21 @@ export function IntakeForm() {
             value={form.fullName}
             onChange={(e) => update("fullName", e.target.value)}
             className={inputClass}
-            placeholder="How should we address you?"
+            placeholder={t("namePlaceholder")}
+            aria-invalid={Boolean(fieldErrors.fullName)}
+            aria-describedby={fieldErrors.fullName ? "fullName-error" : undefined}
           />
+          {fieldErrors.fullName && (
+            <p id="fullName-error" role="alert" className="mt-1 text-xs text-red-600">
+              {fieldErrors.fullName}
+            </p>
+          )}
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-              Email <span className="text-slate-400">(optional)</span>
+            <label htmlFor="email" className="block text-sm font-medium text-ink">
+              {t("emailLabel")} <span className="text-ink-faint">{t("emailOptional")}</span>
             </label>
             <input
               id="email"
@@ -121,12 +205,19 @@ export function IntakeForm() {
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
               className={inputClass}
-              placeholder="you@example.com"
+              placeholder={t("emailPlaceholder")}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? "email-error" : undefined}
             />
+            {fieldErrors.email && (
+              <p id="email-error" role="alert" className="mt-1 text-xs text-red-600">
+                {fieldErrors.email}
+              </p>
+            )}
           </div>
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-slate-700">
-              Phone <span className="text-slate-400">(optional)</span>
+            <label htmlFor="phone" className="block text-sm font-medium text-ink">
+              {t("phoneLabel")} <span className="text-ink-faint">{t("phoneOptional")}</span>
             </label>
             <input
               id="phone"
@@ -134,15 +225,15 @@ export function IntakeForm() {
               value={form.phone}
               onChange={(e) => update("phone", e.target.value)}
               className={inputClass}
-              placeholder="(555) 555-5555"
+              placeholder={t("phonePlaceholder")}
             />
           </div>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="preferredContact" className="block text-sm font-medium text-slate-700">
-              Preferred contact
+            <label htmlFor="preferredContact" className="block text-sm font-medium text-ink">
+              {t("preferredContactLabel")}
             </label>
             <select
               id="preferredContact"
@@ -152,14 +243,14 @@ export function IntakeForm() {
               }
               className={inputClass}
             >
-              <option value="either">Either is fine</option>
-              <option value="email">Email</option>
-              <option value="phone">Phone</option>
+              <option value="either">{t("preferredContactEither")}</option>
+              <option value="email">{t("preferredContactEmail")}</option>
+              <option value="phone">{t("preferredContactPhone")}</option>
             </select>
           </div>
           <div>
-            <label htmlFor="zipCode" className="block text-sm font-medium text-slate-700">
-              ZIP code <span className="text-slate-400">(optional)</span>
+            <label htmlFor="zipCode" className="block text-sm font-medium text-ink">
+              {t("zipLabel")} <span className="text-ink-faint">{t("zipOptional")}</span>
             </label>
             <input
               id="zipCode"
@@ -167,14 +258,14 @@ export function IntakeForm() {
               value={form.zipCode}
               onChange={(e) => update("zipCode", e.target.value)}
               className={inputClass}
-              placeholder="Helps us find local resources"
+              placeholder={t("zipPlaceholder")}
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="message" className="block text-sm font-medium text-slate-700">
-            How can we help? <span className="text-red-500">*</span>
+          <label htmlFor="message" className="block text-sm font-medium text-ink">
+            {t("messageLabel")} <span className="text-red-600">*</span>
           </label>
           <textarea
             id="message"
@@ -183,26 +274,42 @@ export function IntakeForm() {
             value={form.message}
             onChange={(e) => update("message", e.target.value)}
             className={inputClass}
-            placeholder="Tell us what you need in your own words. Please avoid sharing more sensitive details than necessary."
+            placeholder={t("messagePlaceholder")}
+            aria-invalid={Boolean(fieldErrors.message)}
+            aria-describedby={fieldErrors.message ? "message-error" : "message-hint"}
           />
-          <p className="mt-1 text-xs text-slate-500">
-            Please don&apos;t include sensitive information like full financial account numbers.
-          </p>
+          {fieldErrors.message ? (
+            <p id="message-error" role="alert" className="mt-1 text-xs text-red-600">
+              {fieldErrors.message}
+            </p>
+          ) : (
+            <p id="message-hint" className="mt-1 text-xs text-ink-faint">
+              {t("messageHint")}
+            </p>
+          )}
         </div>
 
-        <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-4">
-          <input
-            type="checkbox"
-            checked={form.consent}
-            onChange={(e) => update("consent", e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-          />
-          <span className="text-sm text-slate-600">
-            I consent to a staff member reviewing this request to help me. I understand this is not
-            an emergency service and does not provide legal or medical advice.{" "}
-            <span className="text-red-500">*</span>
-          </span>
-        </label>
+        <div>
+          <label className="flex items-start gap-3 rounded-lg bg-paper-dim p-4">
+            <input
+              id="consent"
+              type="checkbox"
+              checked={form.consent}
+              onChange={(e) => update("consent", e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-line text-brand focus:ring-brand"
+              aria-invalid={Boolean(fieldErrors.consent)}
+              aria-describedby={fieldErrors.consent ? "consent-error" : undefined}
+            />
+            <span className="text-sm text-ink-soft">
+              {t("consentLabel")} <span className="text-red-600">*</span>
+            </span>
+          </label>
+          {fieldErrors.consent && (
+            <p id="consent-error" role="alert" className="mt-1 text-xs text-red-600">
+              {fieldErrors.consent}
+            </p>
+          )}
+        </div>
 
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
@@ -211,23 +318,21 @@ export function IntakeForm() {
         )}
 
         <div className="flex items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">
-            In an emergency, call <strong>911</strong> instead of using this form.
-          </p>
+          <p className="text-xs text-ink-faint">{t("emergencyNotice")}</p>
           <button
             type="submit"
             disabled={status === "submitting"}
-            className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-paper shadow-sm transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {status === "submitting" ? "Submitting…" : "Submit request"}
+            {status === "submitting" ? t("submittingButton") : t("submitButton")}
           </button>
         </div>
       </div>
 
-      <p className="mt-4 text-center text-xs text-slate-400">
-        Are you staff?{" "}
-        <Link href="/dashboard" className="underline hover:text-slate-600">
-          Go to the dashboard
+      <p className="mt-4 text-center text-xs text-ink-faint">
+        {t("staffLinkPrefix")}{" "}
+        <Link href="/dashboard" className="underline hover:text-ink-soft">
+          {t("staffLinkCta")}
         </Link>
       </p>
     </form>

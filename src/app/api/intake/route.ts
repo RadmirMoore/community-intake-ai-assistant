@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
+import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/dictionary";
 import { checkRateLimit, clientIpFrom } from "@/lib/rate-limit";
 import { getStore } from "@/lib/storage";
 import { triageIntake } from "@/lib/triage";
-import { intakeInputSchema } from "@/lib/types";
+import { buildIntakeInputSchema } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const limit = checkRateLimit(clientIpFrom(request));
+  const limit = await checkRateLimit(`intake:${clientIpFrom(request)}`);
   if (!limit.allowed) {
     return NextResponse.json(
       {
@@ -28,7 +29,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const parsed = intakeInputSchema.safeParse(body);
+  const requestedLocale =
+    typeof body === "object" && body !== null ? (body as { locale?: unknown }).locale : undefined;
+  const locale = isLocale(requestedLocale) ? requestedLocale : DEFAULT_LOCALE;
+
+  const parsed = buildIntakeInputSchema(locale).safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed.", issues: parsed.error.flatten() },

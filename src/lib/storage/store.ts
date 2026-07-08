@@ -8,6 +8,13 @@ export interface CreateSubmissionArgs {
 export interface UpdateSubmissionArgs {
   status?: Status;
   staffNotes?: string;
+  /** Self-reported staff display name credited with this change, if any. */
+  actor?: string;
+  /**
+   * `undefined` = don't touch; `null` = explicitly unpublish; object = publish/replace.
+   * Both adapters must distinguish "absent" from "null" here, not merge with `??`.
+   */
+  publishedReply?: Submission["publishedReply"];
 }
 
 /**
@@ -20,6 +27,8 @@ export interface SubmissionStore {
   list(): Promise<Submission[]>;
   get(id: string): Promise<Submission | null>;
   update(id: string, args: UpdateSubmissionArgs): Promise<Submission | null>;
+  /** Permanently removes a submission. Returns false if it didn't exist. */
+  delete(id: string): Promise<boolean>;
   /** Human-readable name of the active backend, surfaced in the UI. */
   readonly backend: "supabase" | "local-json";
 }

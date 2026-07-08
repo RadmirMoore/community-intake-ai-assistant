@@ -1,19 +1,75 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens. Warm-neutral paper instead of cold slate, one deliberate
+ * evergreen accent (care/growth, not another SaaS teal), and a small warm
+ * gold used sparingly for "needs a second look" moments. Semantic red for
+ * emergencies is left as Tailwind's default red scale on purpose — that
+ * meaning shouldn't compete with the brand palette.
+ */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --color-paper: #f7f5f1;
+  --color-paper-dim: #efece4;
+  --color-ink: #201e1b;
+  --color-ink-soft: #59554d;
+  --color-ink-faint: #8b8579;
+  --color-line: #e3ddd0;
+  --color-line-soft: #ece7db;
+  --color-brand: #1f5d4c;
+  --color-brand-dark: #143d31;
+  --color-brand-soft: #e5efea;
+  --color-gold: #96650f;
+  --color-gold-soft: #f6ecd8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-paper: var(--color-paper);
+  --color-paper-dim: var(--color-paper-dim);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-ink-faint: var(--color-ink-faint);
+  --color-line: var(--color-line);
+  --color-line-soft: var(--color-line-soft);
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-soft: var(--color-brand-soft);
+  --color-gold: var(--color-gold);
+  --color-gold-soft: var(--color-gold-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+}
+
+/* A visible focus ring everywhere, not just where Tailwind's defaults land. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
