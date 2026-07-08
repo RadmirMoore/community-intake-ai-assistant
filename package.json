@@ -4,6 +4,9 @@
   "description": "AI-assisted intake and triage for small nonprofits: Claude drafts the first pass, humans make every decision.",
   "license": "MIT",
   "private": true,
+  "overrides": {
+    "postcss": "^8.5.10"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
