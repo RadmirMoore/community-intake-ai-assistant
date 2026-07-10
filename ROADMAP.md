@@ -1,8 +1,9 @@
 # Roadmap
 
-This project is intentionally scoped as a demonstration, and the README says
-so plainly (see "Known limitations"). The items below are the concrete gaps
-between that and something a real small nonprofit could run day to day.
+This is a real, self-hostable tool a small nonprofit can deploy and use today —
+but it's early, and honest about its gaps (see the README's "Known
+limitations"). The items below are the concrete steps between what's here now
+and something a larger team could lean on day to day, across every shift.
 They're written up here — instead of half-built — so a contributor can pick
 one up as a self-contained piece of work. Pull requests welcome; see
 [CONTRIBUTING.md](CONTRIBUTING.md).
