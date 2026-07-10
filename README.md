@@ -7,13 +7,14 @@
 
 Small nonprofits — food banks, housing programs, public health clinics, legal aid, community centers — receive a steady stream of requests for help, often with very few staff and not everyone technical. This project is a lightweight web app that helps those teams **receive, triage, and follow up** on incoming requests, using Claude to do the tedious first pass while a human always makes the final call.
 
-This is also a case study in what human-in-the-loop AI looks like when the
-people on the other end of it may be in crisis: Claude never sends a message
-or changes a status on its own, a request is never lost if the model call
-fails, and the system prompt hard-codes limits on what the AI is allowed to
-say. See [`docs/RESPONSIBLE_AI.md`](docs/RESPONSIBLE_AI.md) for the full
-design and [`docs/EVALS.md`](docs/EVALS.md) for how triage quality is
-measured, not just assumed.
+It's a real, self-hostable app — deploy it and a nonprofit can use it today —
+built around a strict principle for when the people on the other end may be in
+crisis: Claude never sends a message or changes a status on its own, a request
+is never lost if the model call fails, and the system prompt hard-codes limits
+on what the AI is allowed to say. See
+[`docs/RESPONSIBLE_AI.md`](docs/RESPONSIBLE_AI.md) for the full design and
+[`docs/EVALS.md`](docs/EVALS.md) for how triage quality is measured, not just
+assumed.
 
 ## What it does
 
@@ -222,8 +223,9 @@ ANTHROPIC_API_KEY=sk-ant-... npm run eval:triage
 
 ## Known limitations
 
-This is a demonstration project, honest about what it doesn't do yet — see
-[`ROADMAP.md`](ROADMAP.md) for the scoped version of each of these:
+This is a real, self-hostable tool, but it's early and honest about what it
+doesn't do yet — see [`ROADMAP.md`](ROADMAP.md) for the scoped version of each
+of these:
 
 - The staff sign-in is a single shared password with no per-user accounts.
   Submissions do track a `reviewedBy` name, but it's self-reported (typed in,
@@ -237,9 +239,10 @@ This is a demonstration project, honest about what it doesn't do yet — see
 
 ## Disclaimer
 
-This is a demonstration project. It is not a substitute for professional legal,
-medical, or emergency services. In an emergency, call 911 or your local emergency
-number.
+This tool helps a nonprofit's own staff triage and respond to requests. It is
+not a substitute for professional legal, medical, or emergency services, and it
+does not provide emergency response. In an emergency, call 911 or your local
+emergency number.
 
 ## License
 
