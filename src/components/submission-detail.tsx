@@ -25,7 +25,9 @@ export function SubmissionDetail({
   const [notes, setNotes] = useState(submission.staffNotes);
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
+  // Which copyable value was last copied ("followup" | "email" | "phone"),
+  // so each button shows its own transient "Copied" state independently.
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [replyDraft, setReplyDraft] = useState(
@@ -64,10 +66,13 @@ export function SubmissionDetail({
     setDeleting(false);
   }
 
-  async function copyFollowUp() {
-    await navigator.clipboard.writeText(triage.suggestedFollowUp);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // The app never contacts a requester automatically — staff choose the
+  // channel and reach out themselves. These copy helpers (plus the mailto:/
+  // tel: links below) just make that one-click fast.
+  async function copyText(field: string, value: string) {
+    await navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField((current) => (current === field ? null : current)), 2000);
   }
 
   return (
@@ -99,11 +104,35 @@ export function SubmissionDetail({
 
       <section className="rounded-xl border border-line bg-white p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Contact</h3>
-        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
           <dt className="text-ink-faint">Email</dt>
-          <dd className="text-ink">{input.email || "—"}</dd>
+          <dd className="text-ink">
+            {input.email ? (
+              <ContactValue
+                href={`mailto:${input.email}`}
+                value={input.email}
+                copied={copiedField === "email"}
+                onCopy={(v) => void copyText("email", v)}
+                copyLabel="Copy email"
+              />
+            ) : (
+              "—"
+            )}
+          </dd>
           <dt className="text-ink-faint">Phone</dt>
-          <dd className="text-ink">{input.phone || "—"}</dd>
+          <dd className="text-ink">
+            {input.phone ? (
+              <ContactValue
+                href={`tel:${input.phone.replace(/\s+/g, "")}`}
+                value={input.phone}
+                copied={copiedField === "phone"}
+                onCopy={(v) => void copyText("phone", v)}
+                copyLabel="Copy phone"
+              />
+            ) : (
+              "—"
+            )}
+          </dd>
           <dt className="text-ink-faint">Preferred</dt>
           <dd className="text-ink capitalize">{input.preferredContact}</dd>
           <dt className="text-ink-faint">ZIP</dt>
@@ -168,11 +197,11 @@ export function SubmissionDetail({
             <p className="text-sm font-medium text-ink-faint">Suggested follow-up (draft)</p>
             <button
               type="button"
-              onClick={copyFollowUp}
+              onClick={() => void copyText("followup", triage.suggestedFollowUp)}
               aria-live="polite"
               className="rounded-md border border-brand/30 bg-white px-2.5 py-1 text-xs font-medium text-brand-dark transition hover:bg-brand-soft"
             >
-              {copied ? "Copied" : "Copy"}
+              {copiedField === "followup" ? "Copied" : "Copy"}
             </button>
           </div>
           <pre className="mt-1 whitespace-pre-wrap rounded-lg border border-line bg-white p-3 font-sans text-sm text-ink">
@@ -329,5 +358,44 @@ export function SubmissionDetail({
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * A contact value shown as a click-to-act link (mailto:/tel:) with a small
+ * copy button beside it — staff pick whichever they need. The app itself
+ * never sends anything; these are just shortcuts into the staff member's own
+ * mail/phone app or clipboard.
+ */
+function ContactValue({
+  href,
+  value,
+  copied,
+  onCopy,
+  copyLabel,
+}: {
+  href: string;
+  value: string;
+  copied: boolean;
+  onCopy: (value: string) => void;
+  copyLabel: string;
+}) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <a
+        href={href}
+        className="break-all text-brand-dark underline underline-offset-2 hover:text-brand"
+      >
+        {value}
+      </a>
+      <button
+        type="button"
+        onClick={() => onCopy(value)}
+        aria-label={copied ? "Copied" : copyLabel}
+        className="shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] font-medium text-ink-faint transition hover:bg-paper-dim"
+      >
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </span>
   );
 }
