@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > An AI-assisted intake and triage workflow for small nonprofits, designed to reduce staff workload while keeping humans in control.
-
+![Staff Dashboard](assets/staff%20dashboard.png)
 Small nonprofits — food banks, housing programs, public health clinics, legal aid, community centers — receive a steady stream of requests for help, often with very few staff and not everyone technical. This project is a lightweight web app that helps those teams **receive, triage, and follow up** on incoming requests, using Claude to do the tedious first pass while a human always makes the final call.
 
 It's a real, self-hostable app — deploy it and a nonprofit can use it today —
