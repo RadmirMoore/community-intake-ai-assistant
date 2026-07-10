@@ -60,6 +60,39 @@ describe("SubmissionDetail", () => {
     expect(await screen.findByRole("button", { name: /copied/i })).toBeInTheDocument();
   });
 
+  it("exposes email/phone as mailto: and tel: links with copy buttons", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    renderDetail({
+      submission: {
+        ...submission,
+        input: { ...submission.input, email: "jordan@example.com", phone: "(555) 555-0100" },
+      },
+    });
+
+    // Click-to-act links: staff pick the channel; the app never sends anything itself.
+    expect(screen.getByRole("link", { name: "jordan@example.com" })).toHaveAttribute(
+      "href",
+      "mailto:jordan@example.com",
+    );
+    expect(screen.getByRole("link", { name: "(555) 555-0100" })).toHaveAttribute(
+      "href",
+      "tel:(555)555-0100",
+    );
+
+    // Copy fallback, addressed by its accessible label.
+    await user.click(screen.getByRole("button", { name: /copy email/i }));
+    expect(writeText).toHaveBeenCalledWith("jordan@example.com");
+    expect(await screen.findByRole("button", { name: /^copied$/i })).toBeInTheDocument();
+  });
+
+  it("shows a dash and no contact links when email/phone are absent", () => {
+    renderDetail();
+    expect(screen.queryByRole("link", { name: /@/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /copy email/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /copy phone/i })).not.toBeInTheDocument();
+  });
+
   it("saves staff notes and shows a confirmation", async () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
