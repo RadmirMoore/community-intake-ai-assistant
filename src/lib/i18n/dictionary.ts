@@ -109,7 +109,7 @@ export const DICTIONARIES: Record<Locale, Dictionary> = {
     zodConsentRequired: "We need your consent to have a staff member review this request.",
     statusSaveIdTitle: "Save your request code",
     statusSaveIdBody:
-      "We don't send automatic notifications yet, so this code is the only way to check back for a reply. Bookmark the link or copy the code below.",
+      "A staff member will follow up using the email or phone you gave us. You can also use this code to check your request and read any reply here — we don't send automatic notifications, so check back with the link.",
     statusCopyCode: "Copy code",
     statusCodeCopied: "Copied",
     statusCheckLinkCta: "Check status",
@@ -169,7 +169,7 @@ export const DICTIONARIES: Record<Locale, Dictionary> = {
     zodConsentRequired: "Necesitamos tu consentimiento para que el personal revise esta solicitud.",
     statusSaveIdTitle: "Guarda el código de tu solicitud",
     statusSaveIdBody:
-      "Todavía no enviamos notificaciones automáticas, así que este código es la única forma de ver si hay una respuesta. Guarda el enlace o copia el código.",
+      "Un miembro del personal se pondrá en contacto contigo usando el correo o el teléfono que nos diste. También puedes usar este código para consultar tu solicitud y leer cualquier respuesta aquí — no enviamos notificaciones automáticas, así que revisa con el enlace.",
     statusCopyCode: "Copiar código",
     statusCodeCopied: "Copiado",
     statusCheckLinkCta: "Ver estado",
